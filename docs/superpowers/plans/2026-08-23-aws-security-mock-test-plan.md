@@ -1786,34 +1786,40 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push }),
 }))
 
-const mockQuestions: Question[] = [
-  {
-    id: 'q1',
-    domain: 'Data Protection',
-    questionType: 'single',
-    question: 'Question one?',
-    options: [
-      { id: 'a', text: 'Answer A' },
-      { id: 'b', text: 'Answer B' },
-    ],
-    correctAnswers: ['a'],
-    explanation: 'A is correct.',
-  },
-  {
-    id: 'q2',
-    domain: 'Infrastructure Security',
-    questionType: 'single',
-    question: 'Question two?',
-    options: [
-      { id: 'a', text: 'Answer A' },
-      { id: 'b', text: 'Answer B' },
-    ],
-    correctAnswers: ['b'],
-    explanation: 'B is correct.',
-  },
-]
+const mockQuestions = vi.hoisted(
+  (): Question[] => [
+    {
+      id: 'q1',
+      domain: 'Data Protection',
+      questionType: 'single',
+      question: 'Question one?',
+      options: [
+        { id: 'a', text: 'Answer A' },
+        { id: 'b', text: 'Answer B' },
+      ],
+      correctAnswers: ['a'],
+      explanation: 'A is correct.',
+    },
+    {
+      id: 'q2',
+      domain: 'Infrastructure Security',
+      questionType: 'single',
+      question: 'Question two?',
+      options: [
+        { id: 'a', text: 'Answer A' },
+        { id: 'b', text: 'Answer B' },
+      ],
+      correctAnswers: ['b'],
+      explanation: 'B is correct.',
+    },
+  ]
+)
 
 vi.mock('@/data/questions', () => ({ questions: mockQuestions }))
+// mockQuestions must be declared via vi.hoisted() (not a plain const) because
+// Vitest hoists vi.mock(...) calls above all other top-level statements,
+// including const declarations — a plain `const mockQuestions = [...]`
+// would still be in its temporal dead zone when this factory runs.
 
 beforeEach(() => {
   push.mockClear()
@@ -1990,34 +1996,40 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push }),
 }))
 
-const mockQuestions: Question[] = [
-  {
-    id: 'q1',
-    domain: 'Data Protection',
-    questionType: 'single',
-    question: 'Question one?',
-    options: [
-      { id: 'a', text: 'Answer A' },
-      { id: 'b', text: 'Answer B' },
-    ],
-    correctAnswers: ['a'],
-    explanation: 'A is correct.',
-  },
-  {
-    id: 'q2',
-    domain: 'Infrastructure Security',
-    questionType: 'single',
-    question: 'Question two?',
-    options: [
-      { id: 'a', text: 'Answer A' },
-      { id: 'b', text: 'Answer B' },
-    ],
-    correctAnswers: ['b'],
-    explanation: 'B is correct.',
-  },
-]
+const mockQuestions = vi.hoisted(
+  (): Question[] => [
+    {
+      id: 'q1',
+      domain: 'Data Protection',
+      questionType: 'single',
+      question: 'Question one?',
+      options: [
+        { id: 'a', text: 'Answer A' },
+        { id: 'b', text: 'Answer B' },
+      ],
+      correctAnswers: ['a'],
+      explanation: 'A is correct.',
+    },
+    {
+      id: 'q2',
+      domain: 'Infrastructure Security',
+      questionType: 'single',
+      question: 'Question two?',
+      options: [
+        { id: 'a', text: 'Answer A' },
+        { id: 'b', text: 'Answer B' },
+      ],
+      correctAnswers: ['b'],
+      explanation: 'B is correct.',
+    },
+  ]
+)
 
 vi.mock('@/data/questions', () => ({ questions: mockQuestions }))
+// mockQuestions must be declared via vi.hoisted() (not a plain const) because
+// Vitest hoists vi.mock(...) calls above all other top-level statements,
+// including const declarations — a plain `const mockQuestions = [...]`
+// would still be in its temporal dead zone when this factory runs.
 
 // The real pickRandom/filterByDomains shuffle order — mock them to be
 // order-preserving so this test deterministically sees q1 then q2.
