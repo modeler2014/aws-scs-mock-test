@@ -940,19 +940,34 @@ export const questions: Question[] = [
     explanation:
       'Cross-account access without long-lived credentials is achieved either by assuming a role in the target account (trust policy) or by granting a specific principal from the other account access via a resource-based (bucket) policy. Sharing access keys (b) creates long-lived credentials, and bucket policies are not "copied" between accounts (d).',
   },
-  // ... continue authoring the remaining 63 questions here, following the
-  // domain quota in the Global Constraints section:
-  //   Threat Detection and Incident Response: 9 total
-  //   Security Logging and Monitoring: 12 total
-  //   Infrastructure Security: 13 total
-  //   Identity and Access Management: 10 total (2 written above)
-  //   Data Protection: 12 total (1 written above)
-  //   Management and Security Governance: 9 total
-  // Use ids prefixed by a short domain code (e.g. `td-`, `slm-`, `is-`,
-  // `iam-`, `dp-`, `msg-`) followed by a zero-padded number, so ids stay
-  // unique and sortable.
 ]
 ```
+
+The two objects above are real entries — keep them in the file as-is (they
+already count toward the quota below) and author 63 more `Question` objects
+directly in the array, in the same shape, until it holds exactly 65. Do
+**not** leave any placeholder or "TODO" comment in the file — every entry
+must be a complete, real question.
+
+Required domain quota (from Global Constraints), counting the two examples
+already written:
+
+| Domain | Total needed | Already written |
+|---|---|---|
+| Threat Detection and Incident Response | 9 | 0 |
+| Security Logging and Monitoring | 12 | 0 |
+| Infrastructure Security | 13 | 0 |
+| Identity and Access Management | 10 | 1 (`iam-001`) |
+| Data Protection | 12 | 1 (`dp-001`) |
+| Management and Security Governance | 9 | 0 |
+
+Prefix each new question's `id` with a short domain code followed by a
+zero-padded number, matching the two examples: `td-` (Threat Detection),
+`slm-` (Security Logging and Monitoring), `is-` (Infrastructure Security),
+`iam-` (Identity and Access Management), `dp-` (Data Protection), `msg-`
+(Management and Security Governance) — e.g. `td-001`, `td-002`, ...
+`msg-009`. Include at least 10 `questionType: 'multi'` questions spread
+across the domains (the two examples include one already).
 
 - [ ] **Step 4: Run the tests to verify they pass**
 
