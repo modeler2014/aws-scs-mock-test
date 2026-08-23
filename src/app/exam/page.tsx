@@ -68,7 +68,7 @@ export default function ExamPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-slate-600 dark:text-slate-400">
           Answered {answeredCount} of {examQuestions.length}
         </p>
         <Timer durationSeconds={EXAM_DURATION_SECONDS} onExpire={handleSubmit} />
@@ -85,7 +85,7 @@ export default function ExamPage() {
           type="button"
           onClick={() => setCurrentIndex((i) => Math.max(0, i - 1))}
           disabled={currentIndex === 0}
-          className="rounded-md border border-slate-300 px-4 py-2 disabled:opacity-40"
+          className="rounded-full border border-slate-300 px-5 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-40 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
         >
           Previous
         </button>
@@ -93,7 +93,7 @@ export default function ExamPage() {
           <button
             type="button"
             onClick={() => setCurrentIndex((i) => Math.min(examQuestions.length - 1, i + 1))}
-            className="rounded-md bg-blue-600 px-4 py-2 text-white"
+            className="rounded-full bg-indigo-600 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700"
           >
             Next
           </button>
@@ -101,7 +101,7 @@ export default function ExamPage() {
           <button
             type="button"
             onClick={handleSubmit}
-            className="rounded-md bg-green-600 px-4 py-2 text-white"
+            className="rounded-full bg-green-600 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700"
           >
             Submit Exam
           </button>
