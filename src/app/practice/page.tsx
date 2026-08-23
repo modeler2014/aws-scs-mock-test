@@ -64,12 +64,12 @@ export default function PracticePage() {
 
   if (stage === 'setup') {
     return (
-      <div className="max-w-md space-y-6">
-        <h1 className="text-2xl font-bold">Practice Mode</h1>
+      <div className="max-w-md space-y-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 dark:bg-slate-800 dark:ring-slate-700">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Practice Mode</h1>
         <div>
-          <label className="block text-sm font-medium">Number of questions</label>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Number of questions</label>
           <select
-            className="mt-1 rounded-md border border-slate-300 p-2"
+            className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white p-2 text-sm text-slate-900 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
             value={questionCount}
             onChange={(e) => setQuestionCount(Number(e.target.value))}
           >
@@ -81,14 +81,15 @@ export default function PracticePage() {
           </select>
         </div>
         <div>
-          <p className="text-sm font-medium">Domains (leave unchecked for all)</p>
-          <div className="mt-2 space-y-1">
+          <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Domains (leave unchecked for all)</p>
+          <div className="mt-2 space-y-1.5">
             {DOMAINS.map((domain) => (
-              <label key={domain} className="flex items-center gap-2 text-sm">
+              <label key={domain} className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
                 <input
                   type="checkbox"
                   checked={selectedDomains.includes(domain)}
                   onChange={() => toggleDomain(domain)}
+                  className="size-4 accent-indigo-600"
                 />
                 {domain}
               </label>
@@ -98,7 +99,7 @@ export default function PracticePage() {
         <button
           type="button"
           onClick={startPractice}
-          className="rounded-md bg-blue-600 px-4 py-2 text-white"
+          className="rounded-full bg-indigo-600 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700"
         >
           Start Practice
         </button>
@@ -127,7 +128,7 @@ export default function PracticePage() {
             type="button"
             onClick={() => setChecked(true)}
             disabled={selectedIds.length === 0}
-            className="rounded-md bg-blue-600 px-4 py-2 text-white disabled:opacity-40"
+            className="rounded-full bg-indigo-600 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:opacity-40"
           >
             Check Answer
           </button>
@@ -135,7 +136,7 @@ export default function PracticePage() {
           <button
             type="button"
             onClick={handleNext}
-            className="rounded-md bg-green-600 px-4 py-2 text-white"
+            className="rounded-full bg-green-600 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700"
           >
             {currentIndex === practiceQuestions.length - 1 ? 'Finish' : 'Next'}
           </button>
