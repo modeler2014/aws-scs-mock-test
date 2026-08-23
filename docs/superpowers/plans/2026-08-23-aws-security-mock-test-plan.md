@@ -4,15 +4,15 @@
 
 **Goal:** Build and deploy a Next.js + Tailwind web app for practicing the AWS Certified Security – Specialty (SCS-C02) exam, with a timed exam simulation, an untimed practice mode (including multi-answer "select N" questions), and localStorage-backed history — no backend, no database.
 
-**Architecture:** Next.js 14 App Router client app. A pure-function scoring/data layer (`src/lib`, `src/types`) is unit-tested in isolation with Vitest. Presentational components (`src/components`) are tested with React Testing Library. Route pages (`src/app/**/page.tsx`) wire the lib and components together and are the thinnest, least-tested layer (covered with focused RTL tests using mocked routing/storage).
+**Architecture:** Next.js (latest stable, App Router) client app. A pure-function scoring/data layer (`src/lib`, `src/types`) is unit-tested in isolation with Vitest. Presentational components (`src/components`) are tested with React Testing Library. Route pages (`src/app/**/page.tsx`) wire the lib and components together and are the thinnest, least-tested layer (covered with focused RTL tests using mocked routing/storage).
 
-**Tech Stack:** Next.js 14 (App Router, TypeScript), Tailwind CSS, Vitest + @testing-library/react for tests, `localStorage` for attempt history, `sessionStorage` to pass the just-completed attempt to the results page. Deployed on Vercel.
+**Tech Stack:** Next.js (latest stable, App Router, TypeScript), Tailwind CSS (v4, CSS-first config via `globals.css` — no `tailwind.config.ts` needed), Vitest + @testing-library/react for tests, `localStorage` for attempt history, `sessionStorage` to pass the just-completed attempt to the results page. Deployed on Vercel.
 
 ## Global Constraints
 
 - No backend, no database, no auth — client-only app (from spec).
 - Node.js LTS, npm as the package manager.
-- Next.js 14 App Router + TypeScript (strict mode, from `create-next-app` default).
+- Next.js (latest stable, `create-next-app@latest`) App Router + TypeScript (strict mode, from `create-next-app` default). Confirmed via Task 1 review (2026-08-23): scaffolded as Next.js 16 / Tailwind v4 — no dynamic route segments or Next-14-specific APIs appear anywhere in this plan, so the later tasks are unaffected by the newer major version.
 - Tailwind CSS for all styling.
 - Vitest + `@testing-library/react` (jsdom environment) for all automated tests.
 - Exam mode: exactly 65 questions, 170-minute timer, pass threshold 75% (from spec).
@@ -27,7 +27,7 @@
 ### Task 1: Project Scaffolding
 
 **Files:**
-- Create: entire Next.js project structure (`package.json`, `tsconfig.json`, `tailwind.config.ts`, `next.config.ts`, `src/app/layout.tsx`, `src/app/page.tsx`, `src/app/globals.css`, `.gitignore`, etc.) via `create-next-app`
+- Create: entire Next.js project structure (`package.json`, `tsconfig.json`, `next.config.ts`, `src/app/layout.tsx`, `src/app/page.tsx`, `src/app/globals.css`, `.gitignore`, etc.) via `create-next-app` (Tailwind v4 configures itself via `globals.css`, not a `tailwind.config.ts` file)
 - Create: `vitest.config.ts`
 - Create: `vitest.setup.ts`
 - Modify: `package.json` (add `test`/`test:watch` scripts)
