@@ -1428,13 +1428,15 @@ export function ScoreSummary({ attempt }: ScoreSummaryProps) {
             attempt.passed ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
           }`}
         >
-          {attempt.passed ? 'PASS' : 'FAIL'} (75% required)
+          <span>{attempt.passed ? 'PASS' : 'FAIL'}</span> (75% required)
         </p>
       )}
     </div>
   )
 }
 ```
+
+(The `<span>` around `PASS`/`FAIL` is required, not decorative: the test below asserts `getByText('PASS')`, which needs an element whose own normalized text content is exactly `PASS` — without the span, "PASS" and " (75% required)" would be sibling text nodes under the same `<p>`, and RTL would not match either string alone.)
 
 Create `src/components/DomainBreakdown.tsx`:
 
