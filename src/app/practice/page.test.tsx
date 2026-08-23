@@ -78,5 +78,9 @@ describe('PracticePage', () => {
 
     await waitFor(() => expect(push).toHaveBeenCalledWith('/results'))
     expect(window.localStorage.getItem('aws-scs-mock-history')).toContain('"mode":"practice"')
+    // The localStorage history entry must be summary-only (HistoryEntry), never
+    // the full AttemptResult — the full attempt (with per-question detail)
+    // belongs only in sessionStorage, keyed off `getCurrentAttempt`.
+    expect(window.localStorage.getItem('aws-scs-mock-history')).not.toContain('"questions"')
   })
 })
