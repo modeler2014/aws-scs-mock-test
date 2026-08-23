@@ -16,8 +16,14 @@ export function getAttempts(): HistoryEntry[] {
 
 export function saveAttempt(entry: HistoryEntry): void {
   if (typeof window === 'undefined') return
-  const raw = window.localStorage.getItem(STORAGE_KEY)
-  const entries: HistoryEntry[] = raw ? JSON.parse(raw) : []
-  entries.push(entry)
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(entries))
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY)
+    const parsed = raw ? JSON.parse(raw) : []
+    const entries: HistoryEntry[] = Array.isArray(parsed) ? parsed : []
+    entries.push(entry)
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(entries))
+  } catch {
+    // A corrupted or quota-exceeded history write should never block the
+    // user from seeing their just-completed attempt's results.
+  }
 }

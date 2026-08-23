@@ -39,7 +39,16 @@ export default function PracticePage() {
 
   function finishPractice() {
     const result = scoreAttempt(practiceQuestions, answers, 'practice')
-    saveAttempt(result)
+    saveAttempt({
+      id: result.id,
+      mode: result.mode,
+      completedAt: result.completedAt,
+      correctCount: result.correctCount,
+      totalCount: result.totalCount,
+      score: result.score,
+      passed: result.passed,
+      domainBreakdown: result.domainBreakdown,
+    })
     setCurrentAttempt(result)
     router.push('/results')
   }
