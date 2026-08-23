@@ -8,18 +8,26 @@ interface TimerProps {
 }
 
 export function Timer({ durationSeconds, onExpire }: TimerProps) {
+  // Lazy useState initializer (not useRef(Date.now() + ...)) so the impure
+  // Date.now() read happens inside React's documented one-time-init escape
+  // hatch rather than as a plain argument expression evaluated on every
+  // render — the latter trips the react-hooks/purity lint rule even though
+  // useRef only consumes the value on mount.
+  const [deadline] = useState(() => Date.now() + durationSeconds * 1000)
   const [secondsLeft, setSecondsLeft] = useState(durationSeconds)
 
   useEffect(() => {
-    if (secondsLeft <= 0) {
-      onExpire()
-      return
+    const tick = () => {
+      const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000))
+      setSecondsLeft(remaining)
+      if (remaining <= 0) {
+        clearInterval(interval)
+        onExpire()
+      }
     }
-    const interval = setInterval(() => {
-      setSecondsLeft((prev) => prev - 1)
-    }, 1000)
+    const interval = setInterval(tick, 1000)
     return () => clearInterval(interval)
-  }, [secondsLeft, onExpire])
+  }, [deadline, onExpire])
 
   const minutes = Math.floor(secondsLeft / 60)
   const seconds = secondsLeft % 60

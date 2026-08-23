@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { questions as questionBank } from '@/data/questions'
 import { pickRandom } from '@/lib/shuffle'
@@ -21,6 +21,16 @@ export default function ExamPage() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const { answers, setAnswer, isAnswered } = useQuizAnswers()
   const hasSubmitted = useRef(false)
+  const examQuestionsRef = useRef(examQuestions)
+  const answersRef = useRef(answers)
+
+  useEffect(() => {
+    examQuestionsRef.current = examQuestions
+  }, [examQuestions])
+
+  useEffect(() => {
+    answersRef.current = answers
+  }, [answers])
 
   useEffect(() => {
     // Randomizing must happen client-side only (post-hydration) so the server-
@@ -30,14 +40,23 @@ export default function ExamPage() {
     setExamQuestions(pickRandom(questionBank, EXAM_LENGTH))
   }, [])
 
-  function handleSubmit() {
-    if (hasSubmitted.current || examQuestions.length === 0) return
+  const handleSubmit = useCallback(() => {
+    if (hasSubmitted.current || examQuestionsRef.current.length === 0) return
     hasSubmitted.current = true
-    const result = scoreAttempt(examQuestions, answers, 'exam')
-    saveAttempt(result)
+    const result = scoreAttempt(examQuestionsRef.current, answersRef.current, 'exam')
+    saveAttempt({
+      id: result.id,
+      mode: result.mode,
+      completedAt: result.completedAt,
+      correctCount: result.correctCount,
+      totalCount: result.totalCount,
+      score: result.score,
+      passed: result.passed,
+      domainBreakdown: result.domainBreakdown,
+    })
     setCurrentAttempt(result)
     router.push('/results')
-  }
+  }, [router])
 
   if (examQuestions.length === 0) {
     return <p>Loading exam...</p>
