@@ -23,7 +23,7 @@ export function DomainBreakdown({ domainBreakdown }: DomainBreakdownProps) {
               </div>
               <div className="mt-1.5 h-2 w-full rounded-full bg-slate-100 dark:bg-slate-700">
                 <div
-                  className="h-2 rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-[width] duration-500 ease-out"
+                  className="h-2 rounded-full bg-gradient-to-r from-indigo-500 to-violet-500"
                   style={{ width: `${pct}%` }}
                 />
               </div>

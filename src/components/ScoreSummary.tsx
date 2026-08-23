@@ -26,7 +26,7 @@ export function ScoreSummary({ attempt }: ScoreSummaryProps) {
             strokeLinecap="round"
             strokeDasharray={CIRCUMFERENCE}
             strokeDashoffset={offset}
-            className={`${ringColor} transition-[stroke-dashoffset] duration-700 ease-out`}
+            className={ringColor}
           />
         </svg>
         <span className="absolute inset-0 flex items-center justify-center text-xl font-bold text-slate-900 dark:text-slate-100">
