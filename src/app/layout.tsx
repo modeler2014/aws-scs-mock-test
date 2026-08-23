@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import Link from 'next/link'
+import { Shield } from 'lucide-react'
+import { ThemeToggle } from '@/components/ThemeToggle'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
@@ -35,15 +37,23 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: noFlashThemeScript }} />
       </head>
       <body className="bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
-        <header className="border-b border-slate-200 bg-white">
-          <nav className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3">
-            <Link href="/" className="font-semibold">
+        <header className="bg-slate-950">
+          <nav className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4">
+            <Link href="/" className="flex items-center gap-2 font-semibold text-white">
+              <Shield aria-hidden="true" size={20} className="text-indigo-400" />
               AWS Security Specialty Mock Test
             </Link>
-            <div className="flex gap-4 text-sm">
-              <Link href="/practice">Practice</Link>
-              <Link href="/exam">Exam</Link>
-              <Link href="/history">History</Link>
+            <div className="flex items-center gap-5 text-sm font-medium text-slate-300">
+              <Link href="/practice" className="transition-colors hover:text-white">
+                Practice
+              </Link>
+              <Link href="/exam" className="transition-colors hover:text-white">
+                Exam
+              </Link>
+              <Link href="/history" className="transition-colors hover:text-white">
+                History
+              </Link>
+              <ThemeToggle />
             </div>
           </nav>
         </header>
