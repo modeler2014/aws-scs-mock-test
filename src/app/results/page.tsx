@@ -30,7 +30,7 @@ export default function ResultsPage() {
     <div className="space-y-6">
       <ScoreSummary attempt={attempt} />
       <DomainBreakdown domainBreakdown={attempt.domainBreakdown} />
-      <h2 className="text-lg font-semibold">Review</h2>
+      <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Review</h2>
       <ReviewList questions={attempt.questions} answers={attempt.answers} />
     </div>
   )
