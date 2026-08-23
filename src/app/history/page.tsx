@@ -18,21 +18,29 @@ export default function HistoryPage() {
 
   return (
     <div className="space-y-3">
-      <h1 className="text-2xl font-bold">Past Attempts</h1>
+      <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Past Attempts</h1>
       <ul className="space-y-2">
         {attempts.map((attempt) => (
           <li
             key={attempt.id}
-            className="flex items-center justify-between rounded-md border border-slate-200 bg-white p-4"
+            className="flex items-center justify-between rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200 dark:bg-slate-800 dark:ring-slate-700"
           >
             <div>
-              <p className="font-medium capitalize">{attempt.mode}</p>
-              <p className="text-sm text-slate-500">{new Date(attempt.completedAt).toLocaleString()}</p>
+              <p className="font-medium text-slate-900 capitalize dark:text-slate-100">{attempt.mode}</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                {new Date(attempt.completedAt).toLocaleString()}
+              </p>
             </div>
             <div className="text-right">
-              <p className="font-semibold">{attempt.score}%</p>
+              <p className="font-semibold text-slate-900 dark:text-slate-100">{attempt.score}%</p>
               {attempt.mode === 'exam' && (
-                <p className={attempt.passed ? 'text-green-600' : 'text-red-600'}>
+                <p
+                  className={
+                    attempt.passed
+                      ? 'text-sm font-medium text-green-600 dark:text-green-400'
+                      : 'text-sm font-medium text-red-600 dark:text-red-400'
+                  }
+                >
                   {attempt.passed ? 'PASS' : 'FAIL'}
                 </p>
               )}
