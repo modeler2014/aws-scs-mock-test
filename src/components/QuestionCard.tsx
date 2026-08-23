@@ -41,7 +41,7 @@ export function QuestionCard({
       <p className="text-xs font-semibold tracking-wide text-indigo-600 uppercase dark:text-indigo-400">
         Question {questionNumber} of {totalQuestions}
         {isMulti && (
-          <span className="ml-2 text-slate-400 normal-case dark:text-slate-500">
+          <span className="ml-2 text-slate-500 normal-case dark:text-slate-400">
             · Select {question.correctAnswers.length}
           </span>
         )}
