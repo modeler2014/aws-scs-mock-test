@@ -30,9 +30,19 @@ runs client-side and is deployable as a static/serverless app on Vercel.
     5. Data Protection
     6. Management and Security Governance
   - `question` text
-  - `options` (multiple choice, single-answer to start)
-  - `correctAnswer`
+  - `options`
+  - `questionType` — `"single"` (radio-button, one correct answer) or
+    `"multi"` (checkboxes, 2+ correct answers — matches the real exam's
+    "select TWO" / "select THREE" style questions)
+  - `correctAnswers` — array of correct option id(s); length 1 for
+    `"single"`, 2+ for `"multi"`
   - `explanation` text shown during review/feedback
+
+Real SCS-C02 questions specify how many options to select (e.g. "Select
+TWO"). Multi-answer questions show that instruction in the question text
+and use checkboxes instead of radio buttons. Scoring for a multi-answer
+question is all-or-nothing: it only counts as correct if the selected set
+exactly matches `correctAnswers`.
 
 ## Modes
 
@@ -72,6 +82,7 @@ runs client-side and is deployable as a static/serverless app on Vercel.
 ## Components
 
 - `QuestionCard` — renders a question + options, handles selection
+  (radio for `"single"`, checkboxes for `"multi"`)
 - `Timer` — countdown timer used by exam mode
 - `ScoreSummary` — overall score + pass/fail
 - `DomainBreakdown` — per-domain score bars/table
@@ -82,8 +93,7 @@ runs client-side and is deployable as a static/serverless app on Vercel.
 - User accounts / auth
 - Server-side storage of results
 - AI-generated questions at runtime
-- Multi-answer (select-multiple) questions in v1 — all questions are
-  single-answer multiple choice
+- Partial credit for multi-answer questions (all-or-nothing only)
 - Cross-device sync of history
 
 ## Deployment
