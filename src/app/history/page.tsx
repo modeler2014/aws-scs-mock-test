@@ -13,7 +13,7 @@ export default function HistoryPage() {
   }, [])
 
   if (attempts.length === 0) {
-    return <p className="text-slate-600">No past attempts yet.</p>
+    return <p className="text-slate-600 dark:text-slate-400">No past attempts yet.</p>
   }
 
   return (
