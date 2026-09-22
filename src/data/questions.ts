@@ -41,16 +41,16 @@ export const questions: Question[] = [
     domain: 'Threat Detection and Incident Response',
     questionType: 'single',
     question:
-      'A fleet of EC2 instances in an Auto Scaling group shares a single IAM role. GuardDuty raises UnauthorizedAccess:IAMUser/InstanceCredentialExfiltration.OutsideAWS for the temporary credentials associated with one specific instance in that fleet. The security team must invalidate the exfiltrated credentials immediately, without disrupting the dozens of other healthy instances currently relying on the same IAM role.',
+      'A fleet of EC2 instances in an Auto Scaling group shares a single IAM role. The fleet also emits custom CloudWatch metrics tracking request latency, dashboarded separately by the SRE team for an unrelated performance initiative. GuardDuty raises UnauthorizedAccess:IAMUser/InstanceCredentialExfiltration.OutsideAWS for the temporary credentials associated with one specific instance in that fleet. The security team must invalidate the exfiltrated credentials immediately, without disrupting the dozens of other healthy instances currently relying on the same IAM role.',
     options: [
       { id: 'a', text: 'Delete the IAM role used by the Auto Scaling group' },
-      { id: 'b', text: 'Stop or terminate the affected EC2 instance' },
+      { id: 'b', text: 'Stop the affected EC2 instance' },
       { id: 'c', text: 'Detach and reattach the instance profile on the Auto Scaling group\'s launch template' },
       { id: 'd', text: 'Use IAM\'s revoke active sessions capability on the role to deny requests using credentials issued before the current time' },
     ],
     correctAnswers: ['d'],
     explanation:
-      'Revoking active sessions attaches a policy denying any request using credentials issued before now, immediately invalidating the exfiltrated session while the role stays intact so other instances simply obtain fresh credentials. Stopping or terminating only the affected instance sounds like it removes the threat, but temporary credentials already exfiltrated off-box remain valid elsewhere until they naturally expire; deleting or reattaching the role disrupts the entire fleet unnecessarily.',
+      'Revoking active sessions attaches a policy denying any request using credentials issued before now, immediately invalidating the exfiltrated session while the role stays intact so other instances simply obtain fresh credentials. Stopping the affected instance sounds like it removes the threat, but temporary credentials already exfiltrated off-box remain valid elsewhere until they naturally expire regardless of the source instance\'s power state; deleting or reattaching the role disrupts the entire fleet unnecessarily.',
   },
   {
     id: 'td-004',
@@ -89,7 +89,7 @@ export const questions: Question[] = [
     domain: 'Threat Detection and Incident Response',
     questionType: 'single',
     question:
-      'A security team wants to detect anomalous S3 access patterns, such as access from a Tor exit node, by analyzing behavior rather than data content, and explicitly does not want to run Macie\'s sensitive-data classification jobs since the team only cares about access behavior, not what the data contains.',
+      'A consumer-electronics retailer stores order records and product images across roughly 40 S3 buckets, and its e-commerce platform recently added a wishlist feature that increased average page load time by 150 milliseconds, a front-end performance detail unrelated to this security requirement. The security team wants to detect anomalous S3 access patterns — such as access originating from a known Tor exit node — by analyzing behavior rather than data content. They explicitly do not want to run Macie\'s sensitive-data classification jobs against these buckets, since the team only cares about access behavior, not what the data actually contains, and those jobs would add scanning cost unrelated to this specific need.',
     options: [
       { id: 'a', text: 'Enable the AWS Config recorder scoped to S3 buckets' },
       { id: 'b', text: 'Enable GuardDuty S3 Protection to analyze CloudTrail S3 data events for anomalous access' },
@@ -121,16 +121,16 @@ export const questions: Question[] = [
     domain: 'Threat Detection and Incident Response',
     questionType: 'multi',
     question:
-      'GuardDuty raises UnauthorizedAccess:IAMUser/MaliciousIPCaller.Custom for an IAM user whose credentials are believed compromised. The response must not disable the organization\'s centralized CloudTrail trail, since doing so would blind the security team to further attacker activity. Select the TWO actions that should be part of the response.',
+      'GuardDuty raises UnauthorizedAccess:IAMUser/MaliciousIPCaller.Custom for an IAM user whose credentials are believed compromised. The IAM user belongs to a marketing analytics team that generates a weekly ad-spend report, a business function unrelated to the response actions required here. The response must not disable the organization\'s centralized CloudTrail trail, since doing so would blind the security team to further attacker activity. Select the TWO actions that should be part of the response.',
     options: [
       { id: 'a', text: 'Grant the principal AdministratorAccess so the security team can investigate using its exact permission set' },
       { id: 'b', text: 'Disable the organization\'s CloudTrail trail to prevent the attacker from generating more logged actions' },
-      { id: 'c', text: 'Rotate or revoke the compromised credentials and terminate any active sessions immediately' },
-      { id: 'd', text: 'Attach an explicit-deny policy to the principal, or disable its access keys, to contain it while the investigation continues' },
+      { id: 'c', text: 'Rotate the IAM user\'s access keys, issuing new credentials and invalidating the compromised pair' },
+      { id: 'd', text: 'Attach an explicit-deny policy to the principal, blocking all actions while the investigation continues' },
     ],
     correctAnswers: ['c', 'd'],
     explanation:
-      'Containing a compromised identity means invalidating the leaked credentials/sessions and cutting off its ability to act, which (c) and (d) accomplish without touching logging. Disabling the trail is explicitly ruled out by the stated constraint and destroys the team\'s own visibility, and granting more privileges is the opposite of containment.',
+      'Containing a compromised identity means invalidating the leaked credentials and separately cutting off its ability to act, which rotating the access keys (c) and attaching an explicit-deny policy (d) accomplish without touching logging. Disabling the trail is explicitly ruled out by the stated constraint and destroys the team\'s own visibility, and granting more privileges is the opposite of containment.',
   },
   {
     id: 'td-009',
@@ -317,7 +317,7 @@ export const questions: Question[] = [
     domain: 'Security Logging and Monitoring',
     questionType: 'single',
     question:
-      'A team wants to understand both the functional difference between a CloudTrail management event and a CloudTrail Insight event, to decide whether enabling Insights would help detect a spike in IAM policy changes, and the correct billing model for management events ahead of a budget review.',
+      'A logistics company\'s cloud team is preparing a budget review and wants to understand exactly how CloudTrail management events are billed, since the review will also cover an unrelated $12,000/month spend on a separate data-warehousing service that has nothing to do with CloudTrail. Separately, a security analyst on the same team wants to know whether enabling CloudTrail Insights would help detect a recent spike in IAM policy changes made outside business hours. Both questions ultimately hinge on understanding what actually distinguishes a CloudTrail management event from a CloudTrail Insight event.',
     options: [
       { id: 'a', text: 'Management events log control-plane API calls as they occur, while Insight events separately analyze that activity to flag anomalies such as unusual API call volume or error-rate spikes; one copy of management events is delivered free to one trail per region, with additional trails, data events, and Insights events billed separately' },
       { id: 'b', text: 'Insight events are free while management events always incur cost regardless of configuration' },
@@ -369,7 +369,7 @@ export const questions: Question[] = [
     domain: 'Infrastructure Security',
     questionType: 'single',
     question:
-      'In a VPC that also happens to have S3 Transfer Acceleration enabled for an unrelated upload pipeline, a network engineer observes that return traffic to an external client is evaluated rule-by-rule in numbered order at the subnet boundary for both directions, while traffic between two instances in the same subnet is automatically allowed back once an initial rule permits it, with no explicit return rule needed. Which statement correctly explains this behavior?',
+      'A network engineer at a logistics company is troubleshooting connectivity in a VPC that also happens to have S3 Transfer Acceleration enabled for an unrelated upload pipeline used by a different team. While reviewing the two network-layer controls protecting a subnet, the engineer observes that return traffic to an external client is evaluated rule-by-rule in numbered order at the subnet boundary for both directions, while traffic between two instances in the same subnet is automatically allowed back once an initial rule permits it, with no explicit return rule needed. The engineer also notices the VPC\'s DHCP option set was customized six months ago for an internal DNS requirement, a configuration detail with no bearing on this specific behavior. Which statement correctly explains what\'s happening?',
     options: [
       { id: 'a', text: 'Security groups are stateless; network ACLs are stateful' },
       { id: 'b', text: 'Both controls are stateless and require explicit outbound allow rules for return traffic' },
@@ -405,12 +405,12 @@ export const questions: Question[] = [
     options: [
       { id: 'a', text: 'AWS Shield Advanced, subscribed on the relevant resources' },
       { id: 'b', text: 'AWS Shield Standard only, which is included automatically for all customers' },
-      { id: 'c', text: 'Amazon Macie enabled on the account' },
+      { id: 'c', text: 'AWS WAF with a rate-based rule limiting requests per source IP' },
       { id: 'd', text: 'An AWS Business or Enterprise Support plan, required to directly engage the Shield Response Team' },
     ],
     correctAnswers: ['a', 'd'],
     explanation:
-      'Shield Advanced provides the enhanced protection and cost protection, but direct engagement with the Shield Response Team additionally requires a Business or Enterprise Support plan. Shield Standard alone provides only baseline network/transport-layer protection with no DRT access or cost protection, and Macie is unrelated to DDoS mitigation.',
+      'Shield Advanced provides the enhanced protection and cost protection, but direct engagement with the Shield Response Team additionally requires a Business or Enterprise Support plan. Shield Standard alone provides only baseline network/transport-layer protection with no DRT access or cost protection, and a WAF rate-based rule can throttle abusive request patterns at Layer 7, but by itself provides neither Shield Response Team engagement nor the scaling-cost protection the requirement calls for.',
   },
   {
     id: 'is-005',
@@ -581,7 +581,7 @@ export const questions: Question[] = [
     domain: 'Identity and Access Management',
     questionType: 'single',
     question:
-      'A security team wants a guarantee that no principal in any member account of its Organization — including that account\'s own root user or an administrator who grants themselves AdministratorAccess — can ever disable GuardDuty or cause the account to leave the Organization. The team already has a CloudWatch alarm that emails them whenever GuardDuty coverage drops in any account, alerting them after the fact.',
+      'A security team at a 25-account Organization wants a guarantee that no principal in any member account — including that account\'s own root user, or an administrator who grants themselves AdministratorAccess — can ever disable GuardDuty or cause the account to leave the Organization. This follows a recent incident in which a departing contractor briefly retained elevated access in one account. The team already has a CloudWatch alarm that emails them whenever GuardDuty coverage drops in any account, which alerts them after the fact, and separately runs a monthly access-review meeting attended by each account\'s application owner, a process detail unrelated to the technical control being evaluated here.',
     options: [
       { id: 'a', text: 'An IAM permissions boundary applied to every user and role individually' },
       { id: 'b', text: 'A Service Control Policy attached at the appropriate OU, denying the relevant GuardDuty and Organizations actions, since SCPs apply to every principal in affected accounts including the root user' },
@@ -613,7 +613,7 @@ export const questions: Question[] = [
     domain: 'Identity and Access Management',
     questionType: 'multi',
     question:
-      'A company migrating from a legacy home-grown SSO portal is evaluating AWS IAM Identity Center for centralized access to its 60-account Organization. One engineer claims it will let them delete all IAM roles entirely, while another is unsure whether it works with their existing Okta deployment. Select the TWO correct statements about IAM Identity Center.',
+      'A company migrating from a legacy home-grown SSO portal, built and maintained in-house for the past eight years, is evaluating AWS IAM Identity Center for centralized access to its 60-account Organization. The migration project also includes retiring an old on-call paging tool in favor of a modern incident-management platform, an unrelated initiative running on the same timeline. During a design review, one engineer claims IAM Identity Center will let the company delete all IAM roles entirely, while another isn\'t sure whether it can federate with their existing Okta deployment at all. Select the TWO correct statements about IAM Identity Center.',
     options: [
       { id: 'a', text: 'It replaces the need for IAM roles entirely' },
       { id: 'b', text: 'It can only be used with a single AWS account, not an Organization' },
@@ -693,16 +693,16 @@ export const questions: Question[] = [
     domain: 'Identity and Access Management',
     questionType: 'single',
     question:
-      'An organization vending its 50th AWS account wants every new account to automatically receive a consistent security baseline — guardrails, centralized logging, a dedicated audit/security account structure — the moment it\'s created, without a manual setup checklist, after an incident where a new account sat unprotected for two days. The team is separately evaluating a third-party CSPM tool from AWS Marketplace, an undecided, unrelated initiative.',
+      'An organization vending its 50th AWS account wants every new account to automatically receive a consistent security baseline — guardrails, centralized logging, a dedicated audit/security account structure — the moment it\'s created, without a manual setup checklist, after a routine internal audit found that manual account-provisioning steps were being completed inconsistently across different engineering teams. The team is separately evaluating a third-party CSPM tool from AWS Marketplace, an undecided, unrelated initiative.',
     options: [
       { id: 'a', text: 'AWS IAM Access Analyzer, run manually after each new account is created' },
-      { id: 'b', text: 'Amazon Cognito' },
+      { id: 'b', text: 'AWS Organizations alone, using custom Lambda automation triggered on account creation, without Control Tower' },
       { id: 'c', text: 'AWS Control Tower\'s Account Factory, which automates a secure multi-account landing zone with guardrails applied to newly vended accounts' },
-      { id: 'd', text: 'AWS Certificate Manager' },
+      { id: 'd', text: 'AWS Service Catalog, publishing a self-service portfolio that provisions a new account on request' },
     ],
     correctAnswers: ['c'],
     explanation:
-      'Control Tower\'s Account Factory automates the consistent baseline (guardrails, logging, account structure) at account creation, closing exactly the two-day exposure window described. Access Analyzer run manually still leaves a gap before it\'s executed, and Cognito and ACM serve unrelated purposes (application user pools and certificate issuance, respectively).',
+      'Control Tower\'s Account Factory automates the consistent baseline (guardrails, logging, account structure) the moment an account is created, closing exactly the inconsistency the audit found. A custom Lambda-based Organizations automation could technically replicate parts of this, but it means building and maintaining that automation themselves rather than using an already-automated, purpose-built landing zone; Service Catalog can standardize self-service provisioning, but it applies a catalog item on request rather than automatically applying guardrails the instant an account is vended; and Access Analyzer run manually still leaves a gap before someone executes it.',
   },
   {
     id: 'iam-010',
@@ -796,13 +796,13 @@ export const questions: Question[] = [
       'A data science team must discover and classify sensitive data such as PII and payment card numbers scattered across dozens of S3 buckets accumulated over several years, using managed, ML-based data identifiers rather than custom regex scripts. The team also uses Amazon SageMaker for unrelated model training work.',
     options: [
       { id: 'a', text: 'AWS Config, using custom rules that check bucket tags' },
-      { id: 'b', text: 'Amazon Inspector, configured for S3 targets' },
+      { id: 'b', text: 'Amazon GuardDuty S3 Protection, analyzing CloudTrail S3 data events for anomalous access patterns' },
       { id: 'c', text: 'AWS Trusted Advisor\'s security checks' },
       { id: 'd', text: 'Amazon Macie, using its managed data identifiers to automatically discover and classify sensitive data across the buckets' },
     ],
     correctAnswers: ['d'],
     explanation:
-      'Macie uses machine learning and managed data identifiers built specifically for discovering and classifying sensitive data at scale in S3. Config tracks configuration rather than inspecting object content, Inspector assesses compute/container vulnerabilities rather than S3 content, and Trusted Advisor provides general best-practice checks with no content classification.',
+      'Macie uses machine learning and managed data identifiers built specifically for discovering and classifying sensitive data at scale in S3. GuardDuty S3 Protection sounds like a strong S3-security candidate, but it flags anomalous access behavior rather than classifying what the data actually contains; Config tracks configuration rather than inspecting object content, and Trusted Advisor provides general best-practice checks with no content classification.',
   },
   {
     id: 'dp-006',
@@ -877,12 +877,12 @@ export const questions: Question[] = [
     options: [
       { id: 'a', text: 'AWS KMS with AWS managed keys' },
       { id: 'b', text: 'AWS KMS with customer managed keys' },
-      { id: 'c', text: 'Amazon Macie' },
+      { id: 'c', text: 'AWS Certificate Manager, issuing a private certificate whose private key is generated and stored in AWS-managed infrastructure' },
       { id: 'd', text: 'AWS CloudHSM, providing dedicated, single-tenant FIPS 140-2 Level 3 validated HSMs under the customer\'s exclusive control' },
     ],
     correctAnswers: ['d'],
     explanation:
-      'CloudHSM provides single-tenant hardware exclusively under customer control, meeting the strictest exclusivity and validation requirement. KMS with customer managed keys sounds like it satisfies the bar since the customer controls the key policy and rotation, but the underlying HSMs are still part of AWS\'s shared, multi-tenant fleet; AWS managed keys offer even less customer control, and Macie is unrelated to key management.',
+      'CloudHSM provides single-tenant hardware exclusively under customer control, meeting the strictest exclusivity and validation requirement. KMS with customer managed keys sounds like it satisfies the bar since the customer controls the key policy and rotation, but the underlying HSMs are still part of AWS\'s shared, multi-tenant fleet; AWS managed keys offer even less customer control, and ACM issues and manages TLS certificates rather than providing dedicated, customer-exclusive HSMs for general-purpose decryption key material.',
   },
   {
     id: 'dp-011',
@@ -973,7 +973,7 @@ export const questions: Question[] = [
     domain: 'Management and Security Governance',
     questionType: 'single',
     question:
-      'During a shared-responsibility training session, a new cloud engineer asks who patches the underlying hypervisor and physical host infrastructure for the company\'s EC2 fleet, while the company\'s guest-OS patch compliance is separately tracked at 94% via Systems Manager Patch Manager, an unrelated internal metric. Who is responsible for the hypervisor/host layer?',
+      'During a shared-responsibility training session for new hires, a cloud engineer who just joined the security team asks who is responsible for patching the underlying hypervisor and physical host infrastructure for the company\'s EC2 fleet. The company\'s guest-OS patch compliance is separately tracked at 94% via Systems Manager Patch Manager, an unrelated internal metric the engineer happened to see on a dashboard earlier that day. The training session is being run jointly by the security and platform engineering teams as part of a broader onboarding curriculum, a scheduling detail with no bearing on the actual division of responsibility. Who is responsible for the hypervisor/host layer?',
     options: [
       { id: 'a', text: 'AWS, as part of "security of the cloud"' },
       { id: 'b', text: 'The customer, as part of "security in the cloud"' },
@@ -1039,14 +1039,14 @@ export const questions: Question[] = [
     question:
       'A company preparing for a PCI DSS audit wants to quickly evaluate its environment against a pre-built collection of Config rules mapped to PCI DSS requirements, rather than manually researching and selecting each rule individually. The finance team is separately reviewing Cost Explorer data to forecast next quarter\'s spend, an unrelated exercise happening the same week.',
     options: [
-      { id: 'a', text: 'AWS Cost Explorer, filtered to security-tagged resources' },
-      { id: 'b', text: 'AWS Budgets' },
-      { id: 'c', text: 'Amazon CloudWatch Logs Insights' },
+      { id: 'a', text: 'AWS Systems Manager Compliance, viewing per-resource patch and association compliance state' },
+      { id: 'b', text: 'AWS Well-Architected Tool, applying the Security pillar lens to the workload' },
+      { id: 'c', text: 'AWS Trusted Advisor\'s full set of Business/Enterprise checks' },
       { id: 'd', text: 'An AWS Config conformance pack for PCI DSS, deploying the mapped rules as a single unit' },
     ],
     correctAnswers: ['d'],
     explanation:
-      'A conformance pack bundles Config rules mapped to a framework like PCI DSS and deploys them as one unit, avoiding manual rule-by-rule selection. Cost Explorer is the tool used for the unrelated finance forecast mentioned in the scenario, and Budgets and Logs Insights are unrelated to compliance rule evaluation.',
+      'A conformance pack bundles Config rules mapped to a framework like PCI DSS and deploys them as one unit, avoiding manual rule-by-rule selection. Systems Manager Compliance tracks operational patch/association state per resource rather than a security framework, the Well-Architected Tool is a manual self-assessment review rather than an automated, continuously evaluated rule set, and Trusted Advisor\'s checks span general best practices without being mapped to a specific compliance framework like PCI DSS.',
   },
   {
     id: 'msg-009',
