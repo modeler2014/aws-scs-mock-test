@@ -9,12 +9,24 @@ export const questions: Question[] = [
     domain: 'Threat Detection and Incident Response',
     questionType: 'single',
     question:
-      'A media streaming startup runs a fleet of EC2 instances, some recently migrated to Graviton processors to cut compute costs by roughly 20%. GuardDuty raises a finding of type Backdoor:EC2/C&CActivity.B!DNS on one instance, indicating it is communicating with known command-and-control infrastructure. The instance is currently serving live production traffic and cannot be taken offline for a lengthy scan. The security team needs to determine whether the attached EBS volumes contain malware with the least operational overhead and without impacting the running workload.',
+      'A media streaming startup runs a fleet of roughly 200 EC2 instances behind an Application Load Balancer, with a subset recently migrated to Graviton processors as part of a cost initiative projected to cut compute spend by roughly 20% over the next fiscal year. Amazon GuardDuty, which has been enabled across the account for the past eight months with S3 Protection and EKS Protection also turned on, raises a finding of type Backdoor:EC2/C&CActivity.B!DNS on one specific instance in the fleet, indicating that instance is issuing DNS lookups consistent with communication to known command-and-control infrastructure. The instance is currently serving live production video-transcoding traffic for several thousand concurrent viewers and cannot be taken offline or have its workload drained for a lengthy scan without triggering visible service degradation. The security team has been asked to determine, as quickly as possible and with the least operational overhead, whether the EBS volumes attached to that instance actually contain malware, without disrupting the workload currently running on it.',
     options: [
-      { id: 'a', text: 'Use Amazon Inspector\'s network reachability analysis to inspect the instance' },
-      { id: 'b', text: 'Enable GuardDuty Malware Protection for EC2, which snapshots the attached EBS volumes and scans them agentlessly' },
-      { id: 'c', text: 'Install a third-party EDR agent on the instance and run a full on-host scan' },
-      { id: 'd', text: 'Open a case in Amazon Detective to review the instance\'s finding history' },
+      {
+        id: 'a',
+        text: 'Run Amazon Inspector\'s network reachability analysis against the instance to determine whether any of its open ports are reachable from the internet, and treat any reachable path as evidence of the malware\'s presence.',
+      },
+      {
+        id: 'b',
+        text: 'Enable GuardDuty Malware Protection for EC2 on the finding, which takes point-in-time EBS snapshots of the volumes attached to the implicated instance and scans them agentlessly in an isolated environment without installing anything on the running instance or interrupting its workload.',
+      },
+      {
+        id: 'c',
+        text: 'Install a third-party endpoint detection and response (EDR) agent onto the running instance via Systems Manager and immediately kick off a full on-host disk scan while the instance keeps serving live transcoding traffic.',
+      },
+      {
+        id: 'd',
+        text: 'Open a new case in Amazon Detective scoped to the instance\'s entity profile and review its historical finding and API-call timeline to infer, from past behavior alone, whether the volumes currently contain malware.',
+      },
     ],
     correctAnswers: ['b'],
     explanation:
@@ -25,12 +37,24 @@ export const questions: Question[] = [
     domain: 'Threat Detection and Incident Response',
     questionType: 'single',
     question:
-      'A logistics company\'s SOC receives a GuardDuty finding that an EC2 instance handling shipment-tracking data was likely compromised via a web application vulnerability. The instance is tagged with a cost-allocation tag showing it costs $0.42/hour to run, a detail the FinOps team flagged in an unrelated report. The responder must preserve evidence, including RAM contents where possible, and cut the instance off from the rest of the network as quickly as possible, and the instance must not be powered off because a memory-resident implant is suspected.',
+      'A logistics company\'s SOC receives a GuardDuty finding indicating that an EC2 instance handling shipment-tracking data was likely compromised through a vulnerability in a web application framework running on it. The instance is tagged with a cost-allocation tag showing it costs $0.42/hour to run, a detail the FinOps team separately flagged in an unrelated chargeback report earlier that week and which has no bearing on the response. Threat intelligence shared by the vendor suggests the specific malware family involved is known to inject itself into running processes and avoid writing persistent artifacts to disk, meaning any evidence may exist only in volatile memory. The responder has been told to preserve all available evidence, including RAM contents where possible, and to sever the instance\'s network connectivity from the rest of the environment as quickly as possible, and has been explicitly instructed that the instance must not be powered off under any circumstances because a memory-resident implant is suspected and powering off would destroy the only copy of that evidence.',
     options: [
-      { id: 'a', text: 'Immediately terminate the instance and restore the application from the last known-good AMI' },
-      { id: 'b', text: 'Stop the instance to freeze it in its current state before investigating' },
-      { id: 'c', text: 'Take an EBS snapshot of the attached volumes, then move the instance\'s network interface to an isolated security group with no inbound or outbound rules' },
-      { id: 'd', text: 'Reboot the instance and monitor GuardDuty until the finding clears' },
+      {
+        id: 'a',
+        text: 'Immediately terminate the instance to stop any further malicious activity, then restore the shipment-tracking application from the most recent known-good AMI in the golden-image pipeline.',
+      },
+      {
+        id: 'b',
+        text: 'Stop the instance through the EC2 console or API to freeze its current disk and configuration state before beginning any further investigation steps.',
+      },
+      {
+        id: 'c',
+        text: 'Take an EBS snapshot of every volume attached to the instance to preserve disk-level evidence, then detach the instance\'s elastic network interface (or move it into an isolated security group with no inbound or outbound rules) so the instance is cut off from the network while remaining powered on.',
+      },
+      {
+        id: 'd',
+        text: 'Reboot the instance to clear any in-memory malicious hooks and then monitor GuardDuty over the following hours to confirm whether the finding stops recurring.',
+      },
     ],
     correctAnswers: ['c'],
     explanation:
@@ -41,12 +65,24 @@ export const questions: Question[] = [
     domain: 'Threat Detection and Incident Response',
     questionType: 'single',
     question:
-      'A fleet of EC2 instances in an Auto Scaling group shares a single IAM role. The fleet also emits custom CloudWatch metrics tracking request latency, dashboarded separately by the SRE team for an unrelated performance initiative. GuardDuty raises UnauthorizedAccess:IAMUser/InstanceCredentialExfiltration.OutsideAWS for the temporary credentials associated with one specific instance in that fleet. The security team must invalidate the exfiltrated credentials immediately, without disrupting the dozens of other healthy instances currently relying on the same IAM role.',
+      'A fleet of roughly 60 EC2 instances inside an Auto Scaling group spans two Availability Zones and shares a single IAM role attached via an instance profile defined in the launch template. That same fleet also emits custom CloudWatch metrics tracking p99 request latency, which the SRE team dashboards separately as part of an unrelated performance-optimization initiative that has nothing to do with this incident. GuardDuty raises the finding UnauthorizedAccess:IAMUser/InstanceCredentialExfiltration.OutsideAWS, indicating that the temporary security credentials issued to one specific instance in that fleet were observed being used from an IP address outside of AWS, meaning they were likely copied off the instance and are now in an attacker\'s possession. The security team has been told to invalidate the exfiltrated credentials immediately, without disrupting the dozens of other healthy instances in the same Auto Scaling group that are currently relying on the same shared IAM role to serve production traffic.',
     options: [
-      { id: 'a', text: 'Delete the IAM role used by the Auto Scaling group' },
-      { id: 'b', text: 'Stop the affected EC2 instance' },
-      { id: 'c', text: 'Detach and reattach the instance profile on the Auto Scaling group\'s launch template' },
-      { id: 'd', text: 'Use IAM\'s revoke active sessions capability on the role to deny requests using credentials issued before the current time' },
+      {
+        id: 'a',
+        text: 'Delete the IAM role that is attached to the Auto Scaling group\'s launch template, removing the role from every instance profile that currently references it.',
+      },
+      {
+        id: 'b',
+        text: 'Stop the one specific EC2 instance that triggered the finding, on the assumption that halting that instance also invalidates any credentials it previously obtained.',
+      },
+      {
+        id: 'c',
+        text: 'Detach the instance profile from the Auto Scaling group\'s launch template configuration and then immediately reattach a newly created instance profile referencing the same underlying role.',
+      },
+      {
+        id: 'd',
+        text: 'Use IAM\'s revoke-active-sessions capability on the shared role, which attaches an inline policy denying any request made using session credentials issued before the current timestamp, without deleting or modifying the role\'s permission set itself.',
+      },
     ],
     correctAnswers: ['d'],
     explanation:
@@ -57,12 +93,24 @@ export const questions: Question[] = [
     domain: 'Threat Detection and Incident Response',
     questionType: 'multi',
     question:
-      'A team wants a GuardDuty finding to automatically trigger a Lambda remediation function within seconds, and specifically wants to avoid building and maintaining a Lambda that polls the GuardDuty API on a schedule to check for new findings. Select the TWO event-driven (non-polling) mechanisms that satisfy this.',
+      'A security automation team wants a GuardDuty finding to automatically trigger a Lambda-based remediation function within seconds of the finding being generated, so that containment steps like isolating a security group or revoking credentials happen without a human in the loop for the initial response. The team has explicitly stated they want to avoid building and operating a Lambda function that polls the GuardDuty ListFindings/GetFindings API on a fixed schedule to check whether anything new has appeared, since that approach was tried previously on a different project and proved both slow to detect new findings and expensive to run continuously. They have also ruled out any design that depends on a human periodically checking a dashboard before remediation begins. Select the TWO event-driven (non-polling) mechanisms that satisfy the stated requirement.',
     options: [
-      { id: 'a', text: 'A CloudWatch cron-scheduled Lambda that calls GetFindings every 5 minutes' },
-      { id: 'b', text: 'An EventBridge rule matching GuardDuty finding events, targeting the remediation Lambda directly' },
-      { id: 'c', text: 'AWS Security Hub custom actions combined with an EventBridge rule that targets the Lambda' },
-      { id: 'd', text: 'AWS Trusted Advisor scheduled refresh notifications' },
+      {
+        id: 'a',
+        text: 'Configure a CloudWatch Events (or EventBridge) cron-scheduled rule that invokes a Lambda function every 5 minutes, and have that Lambda call GetFindings against the GuardDuty API to check for anything new since its last run.',
+      },
+      {
+        id: 'b',
+        text: 'Create an EventBridge rule with an event pattern matching GuardDuty finding events published to the default event bus, and configure the remediation Lambda function directly as that rule\'s target so it is invoked the moment a matching finding is emitted.',
+      },
+      {
+        id: 'c',
+        text: 'Forward GuardDuty findings into AWS Security Hub, define a Security Hub custom action on the relevant finding types, and pair that custom action with an EventBridge rule whose target is the same remediation Lambda function.',
+      },
+      {
+        id: 'd',
+        text: 'Subscribe to AWS Trusted Advisor\'s scheduled weekly refresh notifications and have the remediation Lambda triggered whenever a new Trusted Advisor check result is published.',
+      },
     ],
     correctAnswers: ['b', 'c'],
     explanation:
@@ -73,12 +121,24 @@ export const questions: Question[] = [
     domain: 'Threat Detection and Incident Response',
     questionType: 'single',
     question:
-      'A company runs a separate on-premises SIEM with a 2 TB/day ingestion capacity, a detail that has no bearing on which AWS service centralizes findings within AWS itself. The security team wants a single, prioritized view of findings from GuardDuty, Inspector, Macie, and supported third-party tools normalized into the AWS Security Finding Format (ASFF), without building custom ETL to pull from each service\'s own API.',
+      'A company operates a separate, self-hosted on-premises SIEM with a contracted 2 TB/day log-ingestion capacity that the infrastructure team is proud of, but that ingestion-capacity figure has no bearing on which AWS-native service should be used to centralize security findings that are generated inside AWS itself. The security team currently has GuardDuty, Inspector, and Macie each running independently, and each surfaces its own findings in its own separate console with its own severity scale, which has made it difficult to get one prioritized view of risk across all three. They want a single pane of glass that ingests and normalizes findings from GuardDuty, Inspector, Macie, and any supported third-party partner tools into the common AWS Security Finding Format (ASFF), without the team having to write and maintain custom extract-transform-load logic that calls each service\'s own API separately and reconciles the results itself.',
     options: [
-      { id: 'a', text: 'AWS Security Hub, configured to ingest findings from GuardDuty, Inspector, Macie, and third-party partners in ASFF' },
-      { id: 'b', text: 'AWS Systems Manager OpsCenter' },
-      { id: 'c', text: 'An AWS Config aggregator across the organization' },
-      { id: 'd', text: 'A set of custom CloudWatch dashboards fed by Lambda functions polling each service\'s API' },
+      {
+        id: 'a',
+        text: 'AWS Security Hub, configured to automatically ingest and normalize findings from GuardDuty, Inspector, Macie, and supported third-party partner integrations into the common ASFF schema for unified, prioritized viewing.',
+      },
+      {
+        id: 'b',
+        text: 'AWS Systems Manager OpsCenter, used to aggregate operational issues (OpsItems) raised across the fleet into a single console for tracking and remediation.',
+      },
+      {
+        id: 'c',
+        text: 'An AWS Config aggregator configured at the organization level to consolidate resource configuration-compliance data from every member account into one view.',
+      },
+      {
+        id: 'd',
+        text: 'A custom set of CloudWatch dashboards populated by several Lambda functions, each written to poll one of GuardDuty\'s, Inspector\'s, or Macie\'s APIs on a schedule and push the results into shared metrics.',
+      },
     ],
     correctAnswers: ['a'],
     explanation:
@@ -89,12 +149,24 @@ export const questions: Question[] = [
     domain: 'Threat Detection and Incident Response',
     questionType: 'single',
     question:
-      'A consumer-electronics retailer stores order records and product images across roughly 40 S3 buckets, and its e-commerce platform recently added a wishlist feature that increased average page load time by 150 milliseconds, a front-end performance detail unrelated to this security requirement. The security team wants to detect anomalous S3 access patterns — such as access originating from a known Tor exit node — by analyzing behavior rather than data content. They explicitly do not want to run Macie\'s sensitive-data classification jobs against these buckets, since the team only cares about access behavior, not what the data actually contains, and those jobs would add scanning cost unrelated to this specific need.',
+      'A consumer-electronics retailer stores order records, invoices, and high-resolution product images spread across roughly 40 separate S3 buckets, several of which were created by different teams over the years with inconsistent naming conventions. The company\'s e-commerce platform recently shipped a new wishlist feature that increased average page load time by about 150 milliseconds, a front-end performance detail the platform team is tracking but which is unrelated to this security requirement. The security team wants to detect anomalous S3 access patterns — for example, API calls originating from an IP address associated with a known Tor exit node, or access at an unusual hour from a geography the account has never operated in — by analyzing behavioral signals around who is calling the S3 API and from where, rather than by inspecting what the objects themselves actually contain. They have explicitly said they do not want to run Macie\'s sensitive-data classification jobs against these buckets for this particular requirement, since the team only cares about access behavior right now, not the contents of the data, and running classification jobs across 40 buckets would add scanning cost and time that has nothing to do with this specific need.',
     options: [
-      { id: 'a', text: 'Enable the AWS Config recorder scoped to S3 buckets' },
-      { id: 'b', text: 'Enable GuardDuty S3 Protection to analyze CloudTrail S3 data events for anomalous access' },
-      { id: 'c', text: 'Run Amazon Macie classification jobs against the buckets' },
-      { id: 'd', text: 'Enable VPC Flow Logs on the VPC endpoint used to reach S3' },
+      {
+        id: 'a',
+        text: 'Enable the AWS Config recorder scoped specifically to S3 bucket resources so that any change to bucket configuration is captured in a compliance timeline.',
+      },
+      {
+        id: 'b',
+        text: 'Enable GuardDuty S3 Protection, which analyzes the CloudTrail S3 data-event stream to flag behaviorally anomalous access such as API calls from suspicious IP infrastructure like known Tor exit nodes, without inspecting the contents of the objects themselves.',
+      },
+      {
+        id: 'c',
+        text: 'Run Amazon Macie classification jobs against all 40 buckets to scan the objects\' contents for sensitive data and flag buckets containing PII or payment card data.',
+      },
+      {
+        id: 'd',
+        text: 'Enable VPC Flow Logs on the VPC endpoint used to reach S3, capturing accepted and rejected connection metadata for traffic flowing to that endpoint.',
+      },
     ],
     correctAnswers: ['b'],
     explanation:
@@ -105,12 +177,24 @@ export const questions: Question[] = [
     domain: 'Threat Detection and Incident Response',
     questionType: 'single',
     question:
-      'A team already pays for a CloudTrail Lake subscription used for a separate compliance-reporting workflow. During an active investigation, an analyst wants to visually pivot across the relationships between IAM roles, EC2 instances, and API calls surrounding a GuardDuty finding, without writing custom SQL against raw event history.',
+      'A team already pays for a CloudTrail Lake subscription that is primarily used to satisfy a separate, unrelated quarterly compliance-reporting workflow requiring a handful of predefined SQL queries against a full year of event history. During an active investigation into a GuardDuty finding involving suspicious API activity, an analyst wants to visually pivot back and forth across the relationships between the IAM roles involved, the EC2 instances they were used from, and the sequence of API calls made around the time of the finding, ideally following those connections outward several hops to see what else those same roles and instances touched, without hand-writing new SQL against raw event history each time a new question comes up mid-investigation.',
     options: [
-      { id: 'a', text: 'AWS Config\'s resource configuration timeline' },
-      { id: 'b', text: 'CloudTrail Lake, writing hand-crafted SQL queries against the event data store' },
-      { id: 'c', text: 'Amazon Detective\'s behavior graph, built from VPC Flow Logs, CloudTrail, and GuardDuty findings' },
-      { id: 'd', text: 'The AWS X-Ray service map for the application' },
+      {
+        id: 'a',
+        text: 'Open AWS Config\'s resource configuration timeline for the relevant IAM role and EC2 instances to review how their configuration attributes changed over time.',
+      },
+      {
+        id: 'b',
+        text: 'Use the existing CloudTrail Lake subscription and write additional hand-crafted SQL queries against the event data store each time the analyst needs to explore a new relationship between a role, an instance, and an API call.',
+      },
+      {
+        id: 'c',
+        text: 'Open the relevant entities in Amazon Detective\'s behavior graph, which is automatically built from VPC Flow Logs, CloudTrail management events, and GuardDuty findings, and lets the analyst visually pivot across linked roles, instances, and API activity without writing queries.',
+      },
+      {
+        id: 'd',
+        text: 'Review the AWS X-Ray service map for the application to trace how requests flowed between its internal services around the time of the finding.',
+      },
     ],
     correctAnswers: ['c'],
     explanation:
@@ -121,12 +205,24 @@ export const questions: Question[] = [
     domain: 'Threat Detection and Incident Response',
     questionType: 'multi',
     question:
-      'GuardDuty raises UnauthorizedAccess:IAMUser/MaliciousIPCaller.Custom for an IAM user whose credentials are believed compromised. The IAM user belongs to a marketing analytics team that generates a weekly ad-spend report, a business function unrelated to the response actions required here. The response must not disable the organization\'s centralized CloudTrail trail, since doing so would blind the security team to further attacker activity. Select the TWO actions that should be part of the response.',
+      'GuardDuty raises the finding UnauthorizedAccess:IAMUser/MaliciousIPCaller.Custom for a specific IAM user whose access keys are believed to have been compromised after appearing in calls from an IP address on the team\'s custom threat list. The IAM user in question belongs to a marketing analytics team that normally generates a weekly ad-spend report, a routine business function that is unrelated to the response actions required here and should not distract from containment. The incident-response runbook explicitly states that whatever response is taken must not disable the organization\'s centralized CloudTrail trail, since doing so would blind the security team to any further attacker activity across the rest of the environment while the investigation is ongoing. Select the TWO actions that should be part of the response to this specific finding.',
     options: [
-      { id: 'a', text: 'Grant the principal AdministratorAccess so the security team can investigate using its exact permission set' },
-      { id: 'b', text: 'Disable the organization\'s CloudTrail trail to prevent the attacker from generating more logged actions' },
-      { id: 'c', text: 'Rotate the IAM user\'s access keys, issuing new credentials and invalidating the compromised pair' },
-      { id: 'd', text: 'Attach an explicit-deny policy to the principal, blocking all actions while the investigation continues' },
+      {
+        id: 'a',
+        text: 'Attach the AdministratorAccess managed policy to the compromised principal so the security team can investigate using exactly the same permission set the attacker had, rather than a separate investigative role.',
+      },
+      {
+        id: 'b',
+        text: 'Disable the organization\'s centralized CloudTrail trail entirely, on the reasoning that this prevents the attacker from generating any further logged API activity while the investigation proceeds.',
+      },
+      {
+        id: 'c',
+        text: 'Rotate the IAM user\'s access keys by creating a new key pair and deactivating (or deleting) the compromised pair, immediately invalidating the credentials the attacker was using.',
+      },
+      {
+        id: 'd',
+        text: 'Attach an explicit-deny policy directly to the compromised principal that blocks all actions for that identity while the investigation continues, without touching the role\'s existing permission grants.',
+      },
     ],
     correctAnswers: ['c', 'd'],
     explanation:
@@ -137,12 +233,24 @@ export const questions: Question[] = [
     domain: 'Threat Detection and Incident Response',
     questionType: 'single',
     question:
-      'After containing a compromise, a security team wants to check whether other instances in a fleet share the same exploitable, unpatched package that likely enabled the initial breach. The fleet spans two regions and is billed largely under a Savings Plan covering 70% of usage, a detail unrelated to the security decision. The team wants continuous, low-overhead vulnerability and network-reachability assessment across EC2 and ECR without deploying a separate third-party scanning agent.',
+      'After containing an initial compromise traced back to an outdated, exploitable library on one EC2 instance, a security team wants to check whether any other instances across the fleet share that same vulnerable, unpatched package, since it likely provided the initial foothold the attacker used. The fleet spans two AWS regions and is billed largely under a Compute Savings Plan covering about 70% of overall usage, a cost-allocation detail that is unrelated to the security decision being made here. The team wants continuous, low-overhead vulnerability and network-reachability assessment across both the EC2 fleet and the container images stored in ECR, without deploying and separately operating a new third-party scanning agent across every instance.',
     options: [
-      { id: 'a', text: 'Deploy a third-party CVE scanner agent to every instance via Systems Manager' },
-      { id: 'b', text: 'Use AWS Config rules to check installed package versions' },
-      { id: 'c', text: 'Rely solely on GuardDuty Malware Protection findings' },
-      { id: 'd', text: 'Enable Amazon Inspector, which uses the existing SSM Agent to continuously scan EC2 instances and ECR images for known CVEs and network reachability issues' },
+      {
+        id: 'a',
+        text: 'Deploy a third-party CVE-scanning agent to every instance in both regions using Systems Manager Run Command, and schedule it to re-scan on a recurring basis.',
+      },
+      {
+        id: 'b',
+        text: 'Write AWS Config rules that inspect the installed package inventory reported by the SSM Agent and flag instances whose package versions drift from an approved baseline.',
+      },
+      {
+        id: 'c',
+        text: 'Rely solely on the malware-specific findings already produced by GuardDuty Malware Protection to infer which other instances share the vulnerable package.',
+      },
+      {
+        id: 'd',
+        text: 'Enable Amazon Inspector, which reuses the SSM Agent already installed on managed instances to continuously assess both EC2 instances and ECR container images for known CVEs and network-reachability exposure, without installing a separate scanning agent.',
+      },
     ],
     correctAnswers: ['d'],
     explanation:
@@ -157,12 +265,24 @@ export const questions: Question[] = [
     domain: 'Security Logging and Monitoring',
     questionType: 'single',
     question:
-      'A healthcare company must retain CloudTrail logs for 7 years and guarantee they cannot be deleted or altered by anyone, including the account\'s own root user, until the retention period lapses. The logging bucket sits in the same account as production workloads, which are separately backed up nightly to EBS snapshots for an unrelated disaster-recovery purpose. Which configuration meets the tamper-proofing requirement?',
+      'A healthcare company is required by a regulatory retention mandate to keep its CloudTrail logs for 7 years and must be able to prove to an external auditor that those logs cannot be deleted or altered by anyone, including the AWS account\'s own root user, before that 7-year retention period lapses. The S3 bucket that stores those logs sits in the same account as the company\'s production workloads, which are separately backed up nightly to EBS snapshots as part of an unrelated disaster-recovery process that the infrastructure team maintains independently of the logging requirement. Which configuration actually meets the stated tamper-proofing and immutability requirement for the retention period?',
     options: [
-      { id: 'a', text: 'Enable S3 Object Lock in compliance mode on the CloudTrail destination bucket with a 7-year retention period' },
-      { id: 'b', text: 'Apply a bucket policy that denies s3:DeleteObject to every principal except a designated administrators group' },
-      { id: 'c', text: 'Enable S3 Versioning alone on the bucket' },
-      { id: 'd', text: 'Copy the logs nightly to an EBS volume attached to a stopped EC2 instance' },
+      {
+        id: 'a',
+        text: 'Enable S3 Object Lock in compliance mode on the CloudTrail destination bucket with a 7-year retention period applied to each object version, which prevents deletion or modification of locked versions by any principal, including the root user, until the retention period expires.',
+      },
+      {
+        id: 'b',
+        text: 'Apply a bucket policy statement that denies the s3:DeleteObject action to every principal except a designated administrators IAM group, who would still retain the ability to remove objects.',
+      },
+      {
+        id: 'c',
+        text: 'Enable S3 Versioning alone on the bucket, without pairing it with any object-lock or retention configuration, so that deletions create new delete-marker versions.',
+      },
+      {
+        id: 'd',
+        text: 'Copy the CloudTrail log files nightly onto an EBS volume that stays attached to an EC2 instance kept in the stopped state between copy operations.',
+      },
     ],
     correctAnswers: ['a'],
     explanation:
@@ -173,12 +293,24 @@ export const questions: Question[] = [
     domain: 'Security Logging and Monitoring',
     questionType: 'single',
     question:
-      'A team is investigating whether a specific IAM role called GetObject and PutObject against a bucket of order invoices. CloudTrail is already enabled with the default trail, which also separately streams to a third-party SIEM billed per GB ingested, a cost detail unrelated to this investigation. Which CloudTrail capability, once enabled, captures this object-level activity?',
+      'A team is investigating whether a specific IAM role called GetObject and PutObject against a particular S3 bucket that stores order invoices, after noticing unexplained changes to several invoice files. CloudTrail is already enabled account-wide via the default trail, which separately streams a copy of its events to a third-party SIEM that the company is billed for per gigabyte ingested, a cost detail that is unrelated to answering this particular investigative question. Which CloudTrail capability, once specifically enabled for this bucket, would actually capture that object-level GetObject/PutObject activity?',
     options: [
-      { id: 'a', text: 'CloudTrail Insights, since it detects unusual account activity' },
-      { id: 'b', text: 'CloudTrail data events scoped to the S3 bucket' },
-      { id: 'c', text: 'CloudTrail management events, which are enabled by default' },
-      { id: 'd', text: 'CloudTrail Lake\'s default dashboard view' },
+      {
+        id: 'a',
+        text: 'CloudTrail Insights, on the reasoning that it is designed to detect unusual account activity and would therefore surface this behavior automatically.',
+      },
+      {
+        id: 'b',
+        text: 'CloudTrail data events explicitly scoped to the S3 bucket in question, which record data-plane object-level operations such as GetObject and PutObject once turned on for that resource.',
+      },
+      {
+        id: 'c',
+        text: 'CloudTrail management events, which are enabled by default on every trail and record control-plane operations such as creating or configuring a bucket.',
+      },
+      {
+        id: 'd',
+        text: 'CloudTrail Lake\'s default dashboard view, which presents summary visualizations over whatever event data has already been ingested into the event data store.',
+      },
     ],
     correctAnswers: ['b'],
     explanation:
@@ -189,12 +321,24 @@ export const questions: Question[] = [
     domain: 'Security Logging and Monitoring',
     questionType: 'single',
     question:
-      'A security engineer discovers CloudTrail logging was disabled in one member account of a 40-account Organization, apparently to hide unauthorized IAM changes. The management account separately has an AWS Budgets alert configured for spend above $50,000/month, unrelated to this incident. The engineer wants a control that prevents any member account, including its own administrators, from disabling organization-wide logging going forward.',
+      'A security engineer discovers that CloudTrail logging had been disabled in one member account within a 40-account AWS Organization, apparently as a deliberate step to hide a series of unauthorized IAM policy changes made in that account over the preceding week. The Organization\'s management account separately has an AWS Budgets alert configured to notify finance whenever monthly spend exceeds $50,000, a cost-monitoring control that is entirely unrelated to this logging incident. Having remediated the immediate issue, the engineer now wants a control that prevents any member account — including that account\'s own local administrators — from ever disabling organization-wide CloudTrail logging again, going forward, across all 40 accounts.',
     options: [
-      { id: 'a', text: 'Ask each account owner to manually re-enable CloudTrail and commit not to disable it again' },
-      { id: 'b', text: 'Enable AWS Config in every account to detect when logging is disabled' },
-      { id: 'c', text: 'Create an organization trail in the management account with "apply trail to all accounts" enabled, which member accounts cannot modify or disable locally' },
-      { id: 'd', text: 'Enable GuardDuty in every member account to flag the change' },
+      {
+        id: 'a',
+        text: 'Ask each of the 40 account owners individually to manually re-enable CloudTrail in their account and verbally commit not to disable it again in the future.',
+      },
+      {
+        id: 'b',
+        text: 'Enable AWS Config in every member account with a managed rule that evaluates whether CloudTrail logging is currently enabled, alerting whenever it detects that logging has been turned off.',
+      },
+      {
+        id: 'c',
+        text: 'Create an organization trail in the management account with the "apply trail to all accounts" setting enabled, which centrally enforces logging across every member account in a way that local account administrators cannot modify or disable.',
+      },
+      {
+        id: 'd',
+        text: 'Enable GuardDuty in every member account so that any future attempt to disable CloudTrail is flagged as a finding shortly after it occurs.',
+      },
     ],
     correctAnswers: ['c'],
     explanation:
@@ -205,12 +349,24 @@ export const questions: Question[] = [
     domain: 'Security Logging and Monitoring',
     questionType: 'single',
     question:
-      'A compliance team wants to know within minutes if someone calls StopLogging or DeleteTrail against the organization\'s central CloudTrail trail. The team separately reviews Cost Explorer weekly as part of a routine, unrelated FinOps ritual. What is the most direct way to get near-real-time alerting on this specific event?',
+      'A compliance team wants to know within minutes, rather than hours, whenever anyone calls the StopLogging or DeleteTrail API operations against the organization\'s central CloudTrail trail, since either call would blind the security function to further activity. That same team separately reviews Cost Explorer reports every week as part of a routine, entirely unrelated FinOps ritual that has nothing to do with detecting this kind of event. What is the most direct AWS-native way to get near-real-time alerting specifically for these two API calls?',
     options: [
-      { id: 'a', text: 'Wait for the next AWS Config compliance evaluation cycle to flag the drift' },
-      { id: 'b', text: 'Review Cost Explorer reports for anomalies during the weekly review' },
-      { id: 'c', text: 'Enable S3 Storage Lens on the log bucket' },
-      { id: 'd', text: 'Create a CloudWatch metric filter and alarm on the CloudTrail log group matching StopLogging/DeleteTrail events, notifying via SNS' },
+      {
+        id: 'a',
+        text: 'Wait for the next scheduled AWS Config compliance evaluation cycle to run and flag the resulting configuration drift on the trail resource.',
+      },
+      {
+        id: 'b',
+        text: 'Review Cost Explorer reports for unusual patterns during the team\'s existing weekly cost-review meeting and raise anything that looks unusual.',
+      },
+      {
+        id: 'c',
+        text: 'Enable S3 Storage Lens on the bucket that stores the CloudTrail log files, to get usage and activity metrics about that bucket.',
+      },
+      {
+        id: 'd',
+        text: 'Create a CloudWatch Logs metric filter matching StopLogging and DeleteTrail events in the CloudTrail-fed log group, attach a CloudWatch alarm to that metric, and have the alarm publish to an SNS topic that notifies the team immediately.',
+      },
     ],
     correctAnswers: ['d'],
     explanation:
@@ -221,12 +377,24 @@ export const questions: Question[] = [
     domain: 'Security Logging and Monitoring',
     questionType: 'multi',
     question:
-      'A retailer\'s security team suspects a compromised host inside a VPC is exfiltrating data via DNS tunneling to an external domain while also probing internal hosts on non-standard ports. The team already has AWS Config enabled to track EC2 configuration drift, which will not directly help with this investigation. Select the TWO log sources that should be enabled.',
+      'A retailer\'s security team suspects that a compromised host inside one of their VPCs is exfiltrating customer data using DNS tunneling to an external domain the host has never contacted before, and separately appears to be probing other internal hosts on a range of non-standard, high-numbered ports that don\'t correspond to any of the retailer\'s known applications. The team already has AWS Config enabled account-wide to track EC2 configuration drift for an unrelated compliance initiative, and that existing Config setup will not directly help with either symptom of this specific investigation. Select the TWO log sources that should be enabled to investigate both suspected behaviors.',
     options: [
-      { id: 'a', text: 'IAM Access Analyzer external access findings' },
-      { id: 'b', text: 'VPC Flow Logs, to see IP-level traffic patterns and non-standard port activity between hosts' },
-      { id: 'c', text: 'AWS Trusted Advisor security checks' },
-      { id: 'd', text: 'Route 53 Resolver query logging, to see DNS queries made from within the VPC, including tunneling-style lookups' },
+      {
+        id: 'a',
+        text: 'IAM Access Analyzer external access findings, which identify resource-based policies granting access to principals outside the account or organization.',
+      },
+      {
+        id: 'b',
+        text: 'VPC Flow Logs, capturing accepted and rejected IP-level traffic metadata between hosts so that connections to unusual, non-standard ports between internal instances become visible.',
+      },
+      {
+        id: 'c',
+        text: 'AWS Trusted Advisor security checks, which surface general best-practice recommendations such as overly permissive security groups or unused access keys.',
+      },
+      {
+        id: 'd',
+        text: 'Route 53 Resolver query logging, capturing every DNS query made from within the VPC, including the unusually formed, high-frequency subdomain lookups characteristic of DNS tunneling.',
+      },
     ],
     correctAnswers: ['b', 'd'],
     explanation:
@@ -237,12 +405,24 @@ export const questions: Question[] = [
     domain: 'Security Logging and Monitoring',
     questionType: 'single',
     question:
-      'A security analyst needs to run ad hoc SQL queries across a full year of CloudTrail event history to trace a slow-moving reconnaissance campaign, without provisioning or managing an Athena table, a Glue crawler, or an S3 lifecycle policy. The team separately uses CloudWatch Logs Insights daily to monitor application error rates, an unrelated data source. Which capability best fits the analyst\'s need?',
+      'A security analyst needs to run ad hoc SQL queries against a full year of CloudTrail event history in order to trace the timeline of a slow-moving reconnaissance campaign that appears to have unfolded over several months, and has been told explicitly not to provision or manage an Athena table, a Glue crawler, or an S3 lifecycle policy just to support this one investigation. The team separately relies on CloudWatch Logs Insights every day to monitor application error rates emitted by their microservices, which is an entirely unrelated data source drawing from a different set of log groups. Which capability best fits the analyst\'s stated need here?',
     options: [
-      { id: 'a', text: 'CloudTrail Lake, which stores events in a managed, queryable event data store supporting SQL-based queries over a configurable retention window' },
-      { id: 'b', text: 'CloudWatch Logs Insights run against the raw CloudTrail S3 bucket' },
-      { id: 'c', text: 'AWS Config\'s advanced query feature' },
-      { id: 'd', text: 'S3 Select run against each log file individually' },
+      {
+        id: 'a',
+        text: 'CloudTrail Lake, which stores ingested events in a managed, SQL-queryable event data store with a configurable retention window, without requiring the analyst to separately provision or manage Athena, Glue, or S3 lifecycle infrastructure.',
+      },
+      {
+        id: 'b',
+        text: 'CloudWatch Logs Insights, pointed at the raw CloudTrail log files sitting in the S3 destination bucket rather than at a CloudWatch Logs log group.',
+      },
+      {
+        id: 'c',
+        text: 'AWS Config\'s advanced query feature, which runs SQL-like queries against the current and historical configuration state of resources rather than against CloudTrail API event records.',
+      },
+      {
+        id: 'd',
+        text: 'S3 Select, run individually against each CloudTrail log file object stored in the bucket, one file at a time.',
+      },
     ],
     correctAnswers: ['a'],
     explanation:
@@ -253,12 +433,24 @@ export const questions: Question[] = [
     domain: 'Security Logging and Monitoring',
     questionType: 'single',
     question:
-      'A compliance officer must determine exactly which IAM principal, source IP, and API operations were used against a specific KMS key over the last 90 days, across the management account and every linked member account. The company also runs weekly Macie scans against several S3 buckets for PII, a program unrelated to this specific request. Where should the officer look first?',
+      'A compliance officer must determine, for an upcoming audit, exactly which IAM principal, which source IP address, and which specific API operations were used against one particular customer-managed KMS key over the trailing 90 days, and needs that picture to span both the management account and every one of the linked member accounts in the Organization. The company also runs weekly Amazon Macie scans against several S3 buckets to look for exposed PII, a separate, unrelated program that has nothing to do with this particular key-usage request. Where should the officer look first to answer this question?',
     options: [
-      { id: 'a', text: 'VPC Flow Logs for the subnets hosting the calling application' },
-      { id: 'b', text: 'CloudTrail event history filtered to the KMS event source, correlated across accounts via an organization trail or CloudTrail Lake' },
-      { id: 'c', text: 'Amazon Macie findings for the relevant buckets' },
-      { id: 'd', text: 'AWS Config\'s resource configuration timeline for the key' },
+      {
+        id: 'a',
+        text: 'VPC Flow Logs for the subnets hosting the application that calls the key, which record IP-level connection metadata rather than the specific KMS API operations invoked.',
+      },
+      {
+        id: 'b',
+        text: 'CloudTrail event history filtered to the KMS event source, correlated across the management account and every member account either through an organization trail or by querying CloudTrail Lake, which together record every principal, source IP, and API operation performed against the key.',
+      },
+      {
+        id: 'c',
+        text: 'Amazon Macie findings for whichever S3 buckets the weekly scans cover, which describe discovered sensitive-data types rather than KMS key usage.',
+      },
+      {
+        id: 'd',
+        text: 'AWS Config\'s resource configuration timeline for the key, which records changes to the key\'s own configuration (such as its key policy or rotation setting) rather than who invoked cryptographic operations against it.',
+      },
     ],
     correctAnswers: ['b'],
     explanation:
@@ -269,12 +461,24 @@ export const questions: Question[] = [
     domain: 'Security Logging and Monitoring',
     questionType: 'single',
     question:
-      'A security team wants to be notified via SNS the moment an S3 bucket\'s configuration drifts out of compliance with a rule requiring public access to be blocked. The team already publishes a monthly conformance pack compliance score to a leadership dashboard, a lagging aggregate metric rather than an alert. What should they configure for near-real-time notification of this specific change?',
+      'A security team wants to be notified through SNS the moment any S3 bucket in the account drifts out of compliance with a rule requiring that public access remain blocked on every bucket, so they can respond before the exposure lingers. The same team already publishes a monthly conformance-pack compliance score to a leadership dashboard, but that score is explicitly described internally as a lagging, aggregate metric rather than something anyone monitors for individual, near-real-time events. What should the team configure specifically to get near-real-time notification of this particular kind of configuration change?',
     options: [
-      { id: 'a', text: 'A Config resource inventory export to S3, reviewed daily' },
-      { id: 'b', text: 'A Config aggregator dashboard for the organization' },
-      { id: 'c', text: 'An AWS Config Rule for the bucket setting, combined with an EventBridge rule matching its compliance-change event, targeting an SNS topic' },
-      { id: 'd', text: 'The existing conformance pack compliance score, reviewed monthly' },
+      {
+        id: 'a',
+        text: 'A Config resource inventory export delivered to S3 on a schedule, which the team would then review manually once a day.',
+      },
+      {
+        id: 'b',
+        text: 'A Config aggregator dashboard scoped to the whole organization, summarizing compliance state across every linked account.',
+      },
+      {
+        id: 'c',
+        text: 'An AWS Config rule evaluating the bucket\'s public-access-block setting, paired with an EventBridge rule matching that rule\'s compliance-change events, targeting an SNS topic that notifies the team as soon as the state changes.',
+      },
+      {
+        id: 'd',
+        text: 'The existing monthly conformance-pack compliance score, reviewed as part of the leadership dashboard cadence rather than on any faster schedule.',
+      },
     ],
     correctAnswers: ['c'],
     explanation:
@@ -285,12 +489,24 @@ export const questions: Question[] = [
     domain: 'Security Logging and Monitoring',
     questionType: 'single',
     question:
-      'A security team operating a multi-account Organization wants CloudWatch Logs events from dozens of accounts to reach their external SIEM within seconds of being written, not batched hourly. The company also uses a Config aggregator to centralize compliance data, an unrelated reporting need. What AWS-native mechanism should stream the log events?',
+      'A security team operating a multi-account Organization spanning several dozen accounts wants CloudWatch Logs events generated across every one of those accounts to reach their external SIEM within seconds of being written, rather than being batched together and delivered on an hourly schedule as the current stopgap process does. The company also maintains a Config aggregator to centralize compliance data from across the Organization, which is a separate reporting capability that plays no role in this particular streaming requirement. What AWS-native mechanism should be used to stream these log events with the least delay?',
     options: [
-      { id: 'a', text: 'A scheduled Lambda function that exports CloudWatch Logs to S3 every 15 minutes' },
-      { id: 'b', text: 'AWS Config forwarding rules' },
-      { id: 'c', text: 'Manually downloading logs via the console daily' },
-      { id: 'd', text: 'A CloudWatch Logs subscription filter delivering matching log events to Kinesis Data Streams or Kinesis Data Firehose in near real time' },
+      {
+        id: 'a',
+        text: 'A scheduled Lambda function, triggered every 15 minutes, that exports the contents of relevant CloudWatch Logs log groups to an S3 bucket for later pickup.',
+      },
+      {
+        id: 'b',
+        text: 'AWS Config forwarding rules, configured to relay compliance evaluation results toward the external SIEM endpoint.',
+      },
+      {
+        id: 'c',
+        text: 'Manually downloading the relevant CloudWatch Logs data through the AWS Management Console once each day and uploading it to the SIEM.',
+      },
+      {
+        id: 'd',
+        text: 'A CloudWatch Logs subscription filter configured on each relevant log group, delivering matching log events to Kinesis Data Streams or Kinesis Data Firehose in near real time for onward delivery to the external SIEM.',
+      },
     ],
     correctAnswers: ['d'],
     explanation:
@@ -301,12 +517,24 @@ export const questions: Question[] = [
     domain: 'Security Logging and Monitoring',
     questionType: 'multi',
     question:
-      'A security architect is designing centralized logging for a 200-account Organization ahead of a SOC 2 audit. Engineering leadership has separately asked for an initiative to cut EC2 costs by 10% through Savings Plans, unrelated to this logging design. Select the TWO recommended practices.',
+      'A security architect is designing a centralized logging strategy for a 200-account AWS Organization ahead of an upcoming SOC 2 audit that will specifically scrutinize log integrity and access controls around the logging pipeline itself. Engineering leadership has separately kicked off an initiative to cut overall EC2 spend by 10% through broader adoption of Savings Plans, a cost-optimization effort running on a similar timeline but with no bearing on the logging architecture decisions being made here. Select the TWO recommended practices for this logging design.',
     options: [
-      { id: 'a', text: 'Deliver logs from every member account to a dedicated, tightly access-restricted logging account' },
-      { id: 'b', text: 'Store logs only in the account that generated them, to simplify IAM' },
-      { id: 'c', text: 'Enable monitoring (e.g., CloudTrail data events or S3 server access logging) on the central log bucket itself, to detect unauthorized access to the logs' },
-      { id: 'd', text: 'Grant every engineer read/write access to the central log bucket so they can self-serve troubleshooting' },
+      {
+        id: 'a',
+        text: 'Deliver logs from every member account into a single, dedicated logging account whose access is tightly restricted to a small set of security personnel, separate from the accounts that generated the logs.',
+      },
+      {
+        id: 'b',
+        text: 'Store each account\'s logs only within that same account, on the reasoning that keeping logs local simplifies the IAM policies needed to manage access to them.',
+      },
+      {
+        id: 'c',
+        text: 'Enable monitoring on the central log bucket itself — for example, S3 server access logging or CloudTrail data events scoped to that bucket — specifically to detect unauthorized access attempts against the logs.',
+      },
+      {
+        id: 'd',
+        text: 'Grant every engineer in the organization read/write access to the central logging account\'s bucket so that any of them can self-serve troubleshooting without opening a request to the security team.',
+      },
     ],
     correctAnswers: ['a', 'c'],
     explanation:
@@ -317,12 +545,24 @@ export const questions: Question[] = [
     domain: 'Security Logging and Monitoring',
     questionType: 'single',
     question:
-      'A logistics company\'s cloud team is preparing a budget review and wants to understand exactly how CloudTrail management events are billed, since the review will also cover an unrelated $12,000/month spend on a separate data-warehousing service that has nothing to do with CloudTrail. Separately, a security analyst on the same team wants to know whether enabling CloudTrail Insights would help detect a recent spike in IAM policy changes made outside business hours. Both questions ultimately hinge on understanding what actually distinguishes a CloudTrail management event from a CloudTrail Insight event.',
+      'A logistics company\'s cloud team is preparing materials for an upcoming budget review that will also cover a separate, unrelated $12,000/month spend on a data-warehousing service that has nothing to do with CloudTrail, and as part of that review they want to understand precisely how CloudTrail management events are billed. Separately, on the same team, a security analyst wants to know whether turning on CloudTrail Insights would help detect a recent spike in IAM policy changes that appear to have occurred outside normal business hours. Both of these separate questions ultimately hinge on understanding what actually distinguishes a plain CloudTrail management event from a CloudTrail Insight event, both functionally and in terms of billing.',
     options: [
-      { id: 'a', text: 'Management events log control-plane API calls as they occur, while Insight events separately analyze that activity to flag anomalies such as unusual API call volume or error-rate spikes; one copy of management events is delivered free to one trail per region, with additional trails, data events, and Insights events billed separately' },
-      { id: 'b', text: 'Insight events are free while management events always incur cost regardless of configuration' },
-      { id: 'c', text: 'There is no meaningful difference; both simply log that an API call occurred' },
-      { id: 'd', text: 'Management events only cover S3 API calls, while Insight events cover every AWS service' },
+      {
+        id: 'a',
+        text: 'Management events log control-plane API calls as they occur, while Insight events separately analyze that underlying activity to flag anomalies such as unusual API call volume or error-rate spikes; AWS delivers one copy of management events free to one trail per region, while additional trails, data events, and Insights events are each billed separately.',
+      },
+      {
+        id: 'b',
+        text: 'Insight events are always free of charge, while management events always incur a cost regardless of how the trail is configured or how many copies are delivered.',
+      },
+      {
+        id: 'c',
+        text: 'There is no meaningful functional or billing difference between the two; both simply log the fact that some API call occurred, with identical detail.',
+      },
+      {
+        id: 'd',
+        text: 'Management events only ever cover S3 API calls, while Insight events cover activity from every other AWS service besides S3.',
+      },
     ],
     correctAnswers: ['a'],
     explanation:
@@ -333,12 +573,24 @@ export const questions: Question[] = [
     domain: 'Security Logging and Monitoring',
     questionType: 'single',
     question:
-      'An auditor reviewing VPC Flow Logs six months after they were enabled on a critical subnet notices repeated REJECT entries for traffic between two instances that application owners insist should communicate freely. The subnet\'s route table has not changed during that period, and the instances\' IAM roles have AdministratorAccess, which the auditor initially suspected was the cause. Which resource is actually responsible for a REJECT action recorded in a VPC Flow Log?',
+      'An auditor reviewing VPC Flow Logs roughly six months after they were first enabled on a critical subnet notices a pattern of repeated REJECT entries recorded for traffic flowing between two specific instances that the application owners insist should be able to communicate freely with each other. The subnet\'s route table has not been modified at all during that six-month period, and both instances\' IAM roles are attached with the AdministratorAccess managed policy, which the auditor initially suspected might somehow be the cause of the rejected traffic. Which resource is actually responsible for producing a REJECT action recorded in a VPC Flow Log entry?',
     options: [
-      { id: 'a', text: 'An S3 bucket policy attached to an unrelated bucket' },
-      { id: 'b', text: 'A security group or network ACL denying the traffic at the network layer' },
-      { id: 'c', text: 'The instances\' IAM role permissions, such as the AdministratorAccess policy mentioned' },
-      { id: 'd', text: 'A KMS key policy applied to an encrypted EBS volume' },
+      {
+        id: 'a',
+        text: 'An S3 bucket policy attached to a completely unrelated bucket elsewhere in the account.',
+      },
+      {
+        id: 'b',
+        text: 'A security group or network ACL that is denying the traffic at the network layer, based on its configured inbound or outbound rule evaluation for that traffic.',
+      },
+      {
+        id: 'c',
+        text: 'The instances\' attached IAM role permissions, such as the AdministratorAccess policy the auditor initially suspected of causing the rejection.',
+      },
+      {
+        id: 'd',
+        text: 'A KMS key policy applied to an encrypted EBS volume attached to one of the two instances.',
+      },
     ],
     correctAnswers: ['b'],
     explanation:
@@ -353,12 +605,24 @@ export const questions: Question[] = [
     domain: 'Infrastructure Security',
     questionType: 'single',
     question:
-      'A fintech company runs EC2 instances in private subnets that must call the S3 and DynamoDB APIs to process settlement files, never traversing the public internet. The workload handles roughly 4 million requests per day, a volume detail with no bearing on which connectivity option is appropriate. Leadership wants this connectivity to add the least possible ongoing AWS cost.',
+      'A fintech company runs a fleet of EC2 instances inside private subnets with no route to an internet gateway, and those instances must call the S3 and DynamoDB APIs to process end-of-day settlement files without that traffic ever traversing the public internet. The workload currently handles roughly 4 million API requests per day, a volume figure that has no bearing on which connectivity option is architecturally appropriate, since the choice here is driven by cost structure rather than throughput limits. Leadership has stated the connectivity solution chosen must add the least possible ongoing AWS cost, given that both major private-connectivity options under consideration would technically satisfy the "never touches the public internet" requirement.',
     options: [
-      { id: 'a', text: 'Deploy a NAT gateway in each private subnet' },
-      { id: 'b', text: 'Create interface VPC endpoints (PrivateLink) for S3 and DynamoDB' },
-      { id: 'c', text: 'Configure gateway VPC endpoints for S3 and DynamoDB' },
-      { id: 'd', text: 'Attach an internet gateway to the private subnets and restrict traffic with security groups' },
+      {
+        id: 'a',
+        text: 'Deploy a NAT gateway in each of the private subnets so that outbound calls to S3 and DynamoDB route through the NAT gateway toward the AWS public service endpoints.',
+      },
+      {
+        id: 'b',
+        text: 'Create interface VPC endpoints, backed by AWS PrivateLink, for both the S3 and DynamoDB service APIs, so that traffic reaches each service through an elastic network interface provisioned inside the VPC.',
+      },
+      {
+        id: 'c',
+        text: 'Configure gateway VPC endpoints for both S3 and DynamoDB, which add prefix-list-based route table entries directing traffic to each service privately with no hourly or per-gigabyte endpoint charge.',
+      },
+      {
+        id: 'd',
+        text: 'Attach an internet gateway to the private subnets and rely on security group rules to restrict which sources can reach the instances, while allowing outbound internet-routed calls to S3 and DynamoDB.',
+      },
     ],
     correctAnswers: ['c'],
     explanation:
@@ -369,12 +633,24 @@ export const questions: Question[] = [
     domain: 'Infrastructure Security',
     questionType: 'single',
     question:
-      'A network engineer at a logistics company is troubleshooting connectivity in a VPC that also happens to have S3 Transfer Acceleration enabled for an unrelated upload pipeline used by a different team. While reviewing the two network-layer controls protecting a subnet, the engineer observes that return traffic to an external client is evaluated rule-by-rule in numbered order at the subnet boundary for both directions, while traffic between two instances in the same subnet is automatically allowed back once an initial rule permits it, with no explicit return rule needed. The engineer also notices the VPC\'s DHCP option set was customized six months ago for an internal DNS requirement, a configuration detail with no bearing on this specific behavior. Which statement correctly explains what\'s happening?',
+      'A network engineer at a logistics company is troubleshooting connectivity inside a VPC that also happens to have S3 Transfer Acceleration enabled for a completely unrelated upload pipeline used by a different internal team. While comparing the two network-layer controls that protect a particular subnet, the engineer observes that return traffic destined for an external client is evaluated rule-by-rule, in numbered order, at the subnet boundary for both the inbound and outbound direction independently, whereas traffic flowing between two instances that sit in the same subnet is automatically permitted back once some initial rule allows the outbound leg, with no separate explicit return-traffic rule required at all. The engineer also notices that the VPC\'s DHCP option set had been customized about six months earlier to support an internal DNS requirement, a configuration detail with no bearing on the network behavior being observed here. Which statement correctly explains what the engineer is seeing?',
     options: [
-      { id: 'a', text: 'Security groups are stateless; network ACLs are stateful' },
-      { id: 'b', text: 'Both controls are stateless and require explicit outbound allow rules for return traffic' },
-      { id: 'c', text: 'Network ACLs apply to individual instances while security groups apply to entire subnets' },
-      { id: 'd', text: 'Security groups are stateful and evaluate all applicable allow rules at the instance/ENI level, while network ACLs are stateless and evaluate numbered rules in order at the subnet level' },
+      {
+        id: 'a',
+        text: 'Security groups are stateless devices, while network ACLs are the stateful control that automatically tracks and permits return traffic.',
+      },
+      {
+        id: 'b',
+        text: 'Both controls being described are actually stateless, and each therefore requires an explicit outbound allow rule to be defined before return traffic will be permitted.',
+      },
+      {
+        id: 'c',
+        text: 'Network ACLs apply individually to specific EC2 instances, while security groups apply broadly to every instance within an entire subnet.',
+      },
+      {
+        id: 'd',
+        text: 'Security groups are stateful and automatically evaluate all applicable allow rules at the instance/ENI level, permitting return traffic without an explicit rule, while network ACLs are stateless and evaluate their numbered rules in order at the subnet level, requiring explicit rules for both directions.',
+      },
     ],
     correctAnswers: ['d'],
     explanation:
@@ -385,12 +661,24 @@ export const questions: Question[] = [
     domain: 'Infrastructure Security',
     questionType: 'single',
     question:
-      'An application behind an ALB is receiving repeated SQL injection attempts from a rotating range of source IPs. A marketing team separately manages a CloudFront distribution for static assets, unrelated to this incident. The security team wants to block the malicious requests before they reach the application, with the least ongoing operational overhead, rather than building and maintaining custom detection logic themselves.',
+      'An application sitting behind an Application Load Balancer has been receiving a steady stream of SQL injection attempts originating from a constantly rotating range of source IP addresses, none of which repeats often enough to make IP-based blocking practical on its own. A marketing team separately manages a CloudFront distribution used to serve static marketing assets, which is entirely unrelated to this particular incident and shares no infrastructure with the affected ALB. The security team wants to block the malicious requests before they ever reach the application, and specifically wants a solution with the least ongoing operational overhead, rather than a path that requires them to design, build, and continuously maintain custom pattern-detection logic of their own.',
     options: [
-      { id: 'a', text: 'Associate AWS WAF with the ALB and enable a managed rule group that includes SQL injection protection' },
-      { id: 'b', text: 'Write a custom Lambda@Edge function that inspects each request body for SQL injection patterns' },
-      { id: 'c', text: 'Enable AWS Shield Standard on the ALB' },
-      { id: 'd', text: 'Add a network ACL rule blocking inbound port 443 from the observed IP ranges' },
+      {
+        id: 'a',
+        text: 'Associate an AWS WAF web ACL with the ALB and enable one of the AWS-managed rule groups that already includes maintained SQL injection detection signatures, updated by AWS over time.',
+      },
+      {
+        id: 'b',
+        text: 'Write and deploy a custom Lambda@Edge function that inspects the body of every incoming request for patterns the team believes are indicative of SQL injection, and continues refining that detection logic as new patterns emerge.',
+      },
+      {
+        id: 'c',
+        text: 'Enable AWS Shield Standard on the ALB, relying on its automatic protection against common network and transport-layer (Layer 3/4) DDoS attack vectors.',
+      },
+      {
+        id: 'd',
+        text: 'Add a network ACL rule at the subnet level that blocks inbound traffic on port 443 from each of the specific source IP ranges observed making the malicious requests so far.',
+      },
     ],
     correctAnswers: ['a'],
     explanation:
@@ -401,12 +689,24 @@ export const questions: Question[] = [
     domain: 'Infrastructure Security',
     questionType: 'multi',
     question:
-      'A gaming company bracing for a launch-day traffic surge wants strong protection against large-scale volumetric DDoS attacks, direct access to AWS\'s 24/7 DDoS Response Team during an active attack, and cost protection for scaling charges an attack might cause. The company currently has AWS Basic Support, which includes no technical account manager. Select the TWO things required to obtain all of the stated capabilities.',
+      'A gaming company bracing for a launch-day traffic surge wants three things simultaneously: strong protection against large-scale volumetric DDoS attacks targeting their public-facing infrastructure, direct access to AWS\'s dedicated 24/7 DDoS Response Team (DRT) they can engage during an active attack, and financial cost protection against the scaling charges that a large-scale attack against their Auto Scaling infrastructure might otherwise cause them to incur. The company currently operates under an AWS Basic Support plan, which does not include a technical account manager or any elevated support-case response times. Select the TWO things that are actually required, together, to obtain all of the stated capabilities.',
     options: [
-      { id: 'a', text: 'AWS Shield Advanced, subscribed on the relevant resources' },
-      { id: 'b', text: 'AWS Shield Standard only, which is included automatically for all customers' },
-      { id: 'c', text: 'AWS WAF with a rate-based rule limiting requests per source IP' },
-      { id: 'd', text: 'An AWS Business or Enterprise Support plan, required to directly engage the Shield Response Team' },
+      {
+        id: 'a',
+        text: 'A subscription to AWS Shield Advanced, applied to the relevant public-facing resources such as the ALB, CloudFront distribution, or Elastic IP addresses.',
+      },
+      {
+        id: 'b',
+        text: 'AWS Shield Standard only, relying on the baseline protection that is included automatically at no additional cost for every AWS customer.',
+      },
+      {
+        id: 'c',
+        text: 'AWS WAF configured with a rate-based rule that limits the number of requests permitted per source IP address over a rolling time window.',
+      },
+      {
+        id: 'd',
+        text: 'An upgrade from AWS Basic Support to an AWS Business or Enterprise Support plan, which is required in order to directly engage the Shield Response Team during an active attack.',
+      },
     ],
     correctAnswers: ['a', 'd'],
     explanation:
@@ -417,12 +717,24 @@ export const questions: Question[] = [
     domain: 'Infrastructure Security',
     questionType: 'single',
     question:
-      'A manufacturing company wants its on-premises factory-floor systems to reach VPC resources over a dedicated, private, high-bandwidth connection that avoids the public internet entirely, rather than an encrypted tunnel that still rides over it. The company\'s marketing site is served through CloudFront, unrelated to this connectivity requirement.',
+      'A manufacturing company wants its on-premises factory-floor control systems to reach specific resources inside a VPC over a dedicated, private, consistently high-bandwidth physical connection that avoids the public internet entirely, rather than relying on an encrypted tunnel that, despite being encrypted, still physically rides over the shared public internet to get there. The same company\'s public marketing website is served through a CloudFront distribution, which is a completely separate, unrelated piece of infrastructure with no bearing on this factory-floor connectivity requirement.',
     options: [
-      { id: 'a', text: 'AWS PrivateLink, provisioned as an interface endpoint' },
-      { id: 'b', text: 'AWS Direct Connect' },
-      { id: 'c', text: 'A site-to-site VPN over the public internet' },
-      { id: 'd', text: 'Amazon CloudFront with a custom origin' },
+      {
+        id: 'a',
+        text: 'AWS PrivateLink, provisioned as an interface endpoint that connects to a specific published service rather than to the on-premises network as a whole.',
+      },
+      {
+        id: 'b',
+        text: 'AWS Direct Connect, which establishes a dedicated, private physical network connection between the on-premises facility and an AWS Direct Connect location that never traverses the public internet.',
+      },
+      {
+        id: 'c',
+        text: 'A site-to-site VPN connection that encrypts traffic between the on-premises network and the VPC but still transmits that encrypted traffic over the shared public internet.',
+      },
+      {
+        id: 'd',
+        text: 'Amazon CloudFront configured with a custom origin pointing at resources inside the VPC, used as a content-delivery layer rather than a private network link.',
+      },
     ],
     correctAnswers: ['b'],
     explanation:
@@ -433,12 +745,24 @@ export const questions: Question[] = [
     domain: 'Infrastructure Security',
     questionType: 'single',
     question:
-      'A security engineer wants to guarantee that EC2 instances in a shared VPC can never receive a public IP address, enforced automatically the moment someone attempts a non-compliant launch, rather than caught afterward. The team already has a Slack alert wired to GuardDuty findings, a separate detective workflow.',
+      'A security engineer wants an ironclad guarantee that EC2 instances launched anywhere in a shared VPC can never receive a public IP address, with that guarantee enforced automatically the instant someone attempts a non-compliant launch, rather than a control that only catches the violation sometime after the instance is already running. The team already has a Slack alert wired up to fire whenever GuardDuty raises a relevant finding, which is a useful but entirely separate detective workflow that plays no role in preventing the launch in the first place.',
     options: [
-      { id: 'a', text: 'Rely on GuardDuty to flag any instance that received a public IP after the fact' },
-      { id: 'b', text: 'Enable an AWS Config rule that flags noncompliant instances during the next evaluation cycle' },
-      { id: 'c', text: 'Disable auto-assign public IP on the relevant subnets and add an IAM/SCP deny condition on ec2:RunInstances checking the associatePublicIpAddress parameter' },
-      { id: 'd', text: 'Require manual console review of every launch configuration before approval' },
+      {
+        id: 'a',
+        text: 'Rely on GuardDuty to flag, sometime after the fact, any instance that ends up receiving a public IP address once it has already launched.',
+      },
+      {
+        id: 'b',
+        text: 'Enable an AWS Config rule that evaluates instance configuration and flags any noncompliant instance during the rule\'s next scheduled evaluation cycle.',
+      },
+      {
+        id: 'c',
+        text: 'Disable the auto-assign public IP setting on every relevant subnet in the VPC, and additionally add an IAM or SCP deny condition on the ec2:RunInstances action that checks the associatePublicIpAddress request parameter, blocking non-compliant launch requests outright.',
+      },
+      {
+        id: 'd',
+        text: 'Require a manual console review by a security team member of every proposed launch configuration before it is approved and executed.',
+      },
     ],
     correctAnswers: ['c'],
     explanation:
@@ -449,12 +773,24 @@ export const questions: Question[] = [
     domain: 'Infrastructure Security',
     questionType: 'single',
     question:
-      'An enterprise with 300+ accounts under one Organization wants a single team to centrally define WAF rule groups, Network Firewall policies, and security group policies, automatically applied to every existing VPC and any newly vended account, without manually redeploying policy each time. The team separately reviews Trusted Advisor cost checks weekly, which won\'t help here.',
+      'An enterprise operating more than 300 accounts under one AWS Organization wants a single central team to define WAF rule groups, Network Firewall policies, and standard security group configurations exactly once, and have those policies automatically applied both to every existing VPC across the estate and to any newly vended account going forward, without the central team having to manually redeploy the same policy set into each new environment as it appears. That same central team separately reviews AWS Trusted Advisor cost-optimization checks every week, a routine that will not help address this particular centralized-policy requirement.',
     options: [
-      { id: 'a', text: 'AWS Config, using conformance packs deployed via StackSets' },
-      { id: 'b', text: 'Amazon Inspector configured at the organization level' },
-      { id: 'c', text: 'AWS Trusted Advisor' },
-      { id: 'd', text: 'AWS Firewall Manager, integrated with AWS Organizations' },
+      {
+        id: 'a',
+        text: 'AWS Config, using conformance packs deployed through CloudFormation StackSets to detect and, where remediation actions are configured, correct drift from a defined baseline.',
+      },
+      {
+        id: 'b',
+        text: 'Amazon Inspector configured at the AWS Organizations level, delegating an administrator account to view vulnerability findings across every member account.',
+      },
+      {
+        id: 'c',
+        text: 'AWS Trusted Advisor, relying on its existing set of best-practice checks across cost, performance, security, and fault tolerance.',
+      },
+      {
+        id: 'd',
+        text: 'AWS Firewall Manager, integrated with AWS Organizations, to centrally define and automatically enforce WAF rule groups, Network Firewall policies, and security group policies across both existing accounts/VPCs and any newly created ones.',
+      },
     ],
     correctAnswers: ['d'],
     explanation:
@@ -465,12 +801,24 @@ export const questions: Question[] = [
     domain: 'Infrastructure Security',
     questionType: 'single',
     question:
-      'A company wants stateful, network-layer traffic filtering with intrusion prevention capabilities and domain-name filtering across multiple VPCs, centrally managed from one policy, going beyond what security groups and NACLs provide. The team already has Route 53 Resolver DNS Firewall enabled for a narrower, unrelated use case of blocking known malware domains at the DNS layer only.',
+      'A company wants stateful, network-layer traffic filtering that includes intrusion prevention capabilities and domain-name-based filtering, applied consistently across multiple VPCs from a single centrally managed policy, going meaningfully beyond what security groups and network ACLs are capable of providing on their own. The team already has Route 53 Resolver DNS Firewall enabled for a narrower, unrelated use case: blocking a specific list of known malware domains, but strictly at the DNS-resolution layer and nowhere else in the traffic path.',
     options: [
-      { id: 'a', text: 'AWS Network Firewall, with Suricata-compatible IPS rule groups and domain-list filtering, centrally managed via Firewall Manager' },
-      { id: 'b', text: 'Expanding existing security group rule sets to cover more ports and protocols' },
-      { id: 'c', text: 'Relying solely on the existing Route 53 Resolver DNS Firewall configuration' },
-      { id: 'd', text: 'AWS WAF associated with each VPC\'s resources' },
+      {
+        id: 'a',
+        text: 'AWS Network Firewall, configured with Suricata-compatible intrusion-prevention rule groups and domain-list filtering, with policy centrally managed across VPCs through AWS Firewall Manager.',
+      },
+      {
+        id: 'b',
+        text: 'Expanding the existing security group rule sets on the affected VPCs to cover a broader range of ports and protocols than they currently allow.',
+      },
+      {
+        id: 'c',
+        text: 'Continuing to rely solely on the existing Route 53 Resolver DNS Firewall configuration to cover this broader traffic-inspection requirement as well.',
+      },
+      {
+        id: 'd',
+        text: 'AWS WAF, associated directly with each VPC\'s application resources, to provide Layer 7 web-application filtering across the environment.',
+      },
     ],
     correctAnswers: ['a'],
     explanation:
@@ -481,12 +829,24 @@ export const questions: Question[] = [
     domain: 'Infrastructure Security',
     questionType: 'multi',
     question:
-      'A three-tier web application has a public ALB, an application tier of EC2 instances in private subnets, and an RDS database in isolated subnets. The team is separately migrating the RDS engine to a different compatible engine for feature reasons unrelated to network security. Select the TWO security group configurations that correctly implement least privilege across the tiers.',
+      'A three-tier web application consists of a public-facing Application Load Balancer, an application tier made up of EC2 instances sitting in private subnets, and an RDS database instance placed in a further isolated set of subnets with no route to the internet at all. The team responsible for this application is separately migrating the RDS engine to a different, compatible database engine for feature-parity reasons that have nothing to do with the network security posture being evaluated here. Select the TWO security group configurations that correctly implement least privilege across these three tiers.',
     options: [
-      { id: 'a', text: 'The application tier\'s security group allows inbound traffic only from the ALB\'s security group on the application port' },
-      { id: 'b', text: 'The RDS security group allows inbound traffic only from the application tier\'s security group on the database port' },
-      { id: 'c', text: 'The RDS security group allows inbound traffic from 0.0.0.0/0 on the database port, for simpler troubleshooting' },
-      { id: 'd', text: 'The application tier\'s security group allows inbound traffic from 0.0.0.0/0 on all ports, to avoid blocking legitimate clients' },
+      {
+        id: 'a',
+        text: 'The application tier\'s security group is configured to allow inbound traffic only from the ALB\'s security group, and only on the specific application port the app listens on.',
+      },
+      {
+        id: 'b',
+        text: 'The RDS security group is configured to allow inbound traffic only from the application tier\'s security group, and only on the specific database port the engine listens on.',
+      },
+      {
+        id: 'c',
+        text: 'The RDS security group is configured to allow inbound traffic from 0.0.0.0/0 on the database port, on the reasoning that this makes troubleshooting connectivity issues simpler for the team.',
+      },
+      {
+        id: 'd',
+        text: 'The application tier\'s security group is configured to allow inbound traffic from 0.0.0.0/0 across all ports, so that no legitimate client request is ever accidentally blocked.',
+      },
     ],
     correctAnswers: ['a', 'b'],
     explanation:
@@ -497,12 +857,24 @@ export const questions: Question[] = [
     domain: 'Infrastructure Security',
     questionType: 'single',
     question:
-      'A retailer hosts a static storefront and API and wants protection against both Layer 3/4 and Layer 7 DDoS attacks while caching content at edge locations globally to reduce origin load during flash sales. The team separately runs Direct Connect to a co-located data center for an unrelated internal analytics pipeline. Which combination satisfies the caching-plus-DDoS requirement with the least custom infrastructure to build?',
+      'A retailer hosting a static storefront and a backend API wants protection against both Layer 3/4 and Layer 7 DDoS attacks, while also caching content at edge locations around the world to reduce the load hitting the origin during high-traffic flash sales. The same team separately runs an AWS Direct Connect connection to a co-located data center that supports an unrelated internal analytics pipeline, which has no bearing on this public-facing storefront requirement. Which combination of services satisfies both the caching requirement and the DDoS-protection requirement while requiring the least amount of custom infrastructure for the team to build and maintain?',
     options: [
-      { id: 'a', text: 'A fleet of self-managed NAT gateways with Auto Scaling to absorb traffic spikes' },
-      { id: 'b', text: 'Amazon CloudFront with AWS Shield (automatically included) and AWS WAF associated with the distribution' },
-      { id: 'c', text: 'Amazon S3 Transfer Acceleration alone' },
-      { id: 'd', text: 'AWS Direct Connect extended to carry all customer traffic' },
+      {
+        id: 'a',
+        text: 'A self-managed fleet of NAT gateways placed behind an Auto Scaling group configured to add capacity automatically in response to traffic spikes.',
+      },
+      {
+        id: 'b',
+        text: 'Amazon CloudFront as the content-delivery layer, with AWS Shield automatically included for baseline DDoS protection and AWS WAF associated with the distribution for Layer 7 filtering.',
+      },
+      {
+        id: 'c',
+        text: 'Amazon S3 Transfer Acceleration alone, relying on its accelerated upload path to help the origin keep up during flash sales.',
+      },
+      {
+        id: 'd',
+        text: 'AWS Direct Connect, extended and reconfigured to carry all public customer-facing traffic in addition to its existing internal analytics workload.',
+      },
     ],
     correctAnswers: ['b'],
     explanation:
@@ -513,12 +885,24 @@ export const questions: Question[] = [
     domain: 'Infrastructure Security',
     questionType: 'single',
     question:
-      'Company A wants to expose an internal microservice to consumers in Company B\'s VPC, but the two VPCs have overlapping CIDR ranges from a historical M&A situation, and Company A does not want the service exposed to the public internet. Company B separately uses a Transit Gateway for an unrelated set of VPCs with non-overlapping CIDRs. Which solution meets Company A\'s requirements despite the CIDR overlap?',
+      'Company A wants to expose one specific internal microservice so that consumers inside Company B\'s VPC can reach it, but the two companies\' VPCs happen to have overlapping CIDR ranges as a leftover artifact of a historical merger-and-acquisition situation, and Company A has stated firmly that it does not want the microservice exposed to the public internet under any circumstances. Company B separately uses an AWS Transit Gateway to interconnect an unrelated set of its own VPCs that all have non-overlapping CIDR ranges, a detail that does not change the constraint imposed by the CIDR overlap between Company A and Company B\'s networks. Which solution meets Company A\'s requirements despite that CIDR overlap?',
     options: [
-      { id: 'a', text: 'VPC peering between the two VPCs' },
-      { id: 'b', text: 'Adding both VPCs to Company B\'s existing Transit Gateway' },
-      { id: 'c', text: 'AWS PrivateLink, using a VPC endpoint service published by Company A and consumed via an interface endpoint in Company B\'s VPC' },
-      { id: 'd', text: 'A public Network Load Balancer with a security group restricted by source IP' },
+      {
+        id: 'a',
+        text: 'VPC peering established directly between Company A\'s and Company B\'s VPCs, routing traffic between them based on their respective CIDR ranges.',
+      },
+      {
+        id: 'b',
+        text: 'Adding both Company A\'s and Company B\'s VPCs as attachments to Company B\'s existing Transit Gateway, so traffic routes between them through that shared hub.',
+      },
+      {
+        id: 'c',
+        text: 'AWS PrivateLink, where Company A publishes a VPC endpoint service backed by its internal microservice, and Company B\'s VPC consumes that service through an interface endpoint, without either company needing full network-level routing between the two VPCs.',
+      },
+      {
+        id: 'd',
+        text: 'A public-facing Network Load Balancer in front of the microservice, with a security group restricted to allow traffic only from Company B\'s known source IP ranges.',
+      },
     ],
     correctAnswers: ['c'],
     explanation:
@@ -529,12 +913,24 @@ export const questions: Question[] = [
     domain: 'Infrastructure Security',
     questionType: 'single',
     question:
-      'Amazon Inspector continuously reports a critical CVE in an OpenSSL package installed on several dozen EC2 instances tagged for an unrelated internal cost-allocation project. The security team wants a fix that eliminates the vulnerability for both the running fleet and every future instance launched from the same baseline, not a temporary workaround.',
+      'Amazon Inspector has been continuously reporting a critical-severity CVE in a particular version of an OpenSSL package installed on several dozen EC2 instances, all of which happen to be tagged for an unrelated internal cost-allocation project that has no bearing on the remediation approach. The security team wants a fix that permanently eliminates the vulnerability both for the instances currently running in the fleet and for every future instance launched from the same golden-image baseline, rather than a stopgap that only reduces exposure temporarily until the underlying package is eventually addressed.',
     options: [
-      { id: 'a', text: 'Suppress the finding in Inspector so the dashboard no longer shows it as outstanding' },
-      { id: 'b', text: 'Add a security group rule blocking all inbound traffic to the affected instances' },
-      { id: 'c', text: 'Disable Inspector scanning for the affected instances' },
-      { id: 'd', text: 'Patch the vulnerable package via a Systems Manager Patch Manager baseline, then rebuild the golden AMI so future launches include the fix' },
+      {
+        id: 'a',
+        text: 'Suppress the finding directly within Amazon Inspector\'s console so that it no longer appears in the dashboard as an outstanding, unresolved item.',
+      },
+      {
+        id: 'b',
+        text: 'Add a security group rule that blocks all inbound traffic to the affected instances, cutting off any potential path an attacker could use to reach the vulnerable OpenSSL package.',
+      },
+      {
+        id: 'c',
+        text: 'Disable Amazon Inspector scanning specifically for the affected instances so the finding stops being generated against them going forward.',
+      },
+      {
+        id: 'd',
+        text: 'Patch the vulnerable OpenSSL package on the running fleet using a Systems Manager Patch Manager patch baseline, and then rebuild the golden AMI so that every future instance launched from that baseline already includes the fix.',
+      },
     ],
     correctAnswers: ['d'],
     explanation:
@@ -545,12 +941,24 @@ export const questions: Question[] = [
     domain: 'Infrastructure Security',
     questionType: 'multi',
     question:
-      'A company is redesigning administrative access to EC2 instances in private subnets, aiming to eliminate open inbound SSH/RDP ports and retire its legacy bastion host, whose security group currently allows SSH from a fixed corporate office IP range being decommissioned as the company moves to a fully remote workforce. Select the TWO AWS-native approaches that achieve this.',
+      'A company is redesigning how administrators reach EC2 instances sitting in private subnets, with the explicit goals of eliminating every open inbound SSH and RDP port across the fleet and retiring its legacy bastion host entirely. That bastion host\'s security group currently allows inbound SSH only from a fixed corporate office IP range that is now being decommissioned as the company transitions to a fully remote workforce with no single office network to anchor a source-IP allowlist against. Select the TWO AWS-native approaches that achieve both stated goals.',
     options: [
-      { id: 'a', text: 'Temporarily open the bastion\'s security group to 0.0.0.0/0 during the office decommission' },
-      { id: 'b', text: 'AWS Systems Manager Session Manager, using the SSM Agent and IAM policies rather than inbound network ports' },
-      { id: 'c', text: 'EC2 Instance Connect Endpoint, brokering SSH/RDP connectivity through a VPC endpoint without a public IP or bastion' },
-      { id: 'd', text: 'Share a single SSH key pair across the remote team via a shared password manager entry' },
+      {
+        id: 'a',
+        text: 'Temporarily open the bastion host\'s security group to allow inbound SSH from 0.0.0.0/0 during the period while the office network is being decommissioned, to avoid locking anyone out.',
+      },
+      {
+        id: 'b',
+        text: 'AWS Systems Manager Session Manager, which uses the SSM Agent already present on managed instances together with IAM policies to authorize interactive sessions, without requiring any inbound network port to be opened on the instance.',
+      },
+      {
+        id: 'c',
+        text: 'An EC2 Instance Connect Endpoint, which brokers SSH and RDP connectivity to instances through a VPC endpoint, without the instance needing a public IP address or a traditional bastion host in the path.',
+      },
+      {
+        id: 'd',
+        text: 'Generate a single shared SSH key pair for the whole remote team and distribute it through a shared entry in a password manager so everyone can continue accessing instances the same way as before.',
+      },
     ],
     correctAnswers: ['b', 'c'],
     explanation:
@@ -565,12 +973,24 @@ export const questions: Question[] = [
     domain: 'Identity and Access Management',
     questionType: 'single',
     question:
-      'A contractor\'s IAM user has an identity-based policy granting s3:* on all resources to speed up onboarding, and separately has a permissions boundary attached that allows only s3:GetObject and s3:ListBucket, per the company\'s standard contractor baseline. The contractor\'s laptop is also enrolled in an MDM policy requiring full-disk encryption, an unrelated device-security control. What is the effective result when the contractor attempts s3:PutObject?',
+      'A contractor\'s IAM user has an identity-based policy attached that grants s3:* on all resources ("Resource": "*"), added specifically to speed up onboarding during the contractor\'s first week, and separately has a permissions boundary attached that allows only the s3:GetObject and s3:ListBucket actions, matching the company\'s standard contractor baseline that security requires for every external contractor account. The contractor\'s laptop is also enrolled in an MDM policy that requires full-disk encryption, an entirely unrelated device-security control that has no bearing on the IAM evaluation logic at play here. What is the effective, actual result when the contractor\'s IAM user attempts to call s3:PutObject against a bucket it otherwise has network access to?',
     options: [
-      { id: 'a', text: 'Denied, because effective permissions are the intersection of the identity-based policy and the permissions boundary, and the boundary does not include s3:PutObject' },
-      { id: 'b', text: 'Allowed, because the identity-based policy grants s3:* and boundaries only restrict roles, not users' },
-      { id: 'c', text: 'Allowed, because permissions boundaries are advisory and not enforced by IAM' },
-      { id: 'd', text: 'Denied, because permissions boundaries deny every action by default regardless of any policy' },
+      {
+        id: 'a',
+        text: 'The call is denied, because effective permissions are the intersection of what the identity-based policy allows and what the permissions boundary allows, and since the boundary does not include s3:PutObject, that intersection excludes it.',
+      },
+      {
+        id: 'b',
+        text: 'The call is allowed, because the identity-based policy grants s3:* and permissions boundaries are a construct that only applies to IAM roles, never to IAM users.',
+      },
+      {
+        id: 'c',
+        text: 'The call is allowed, because permissions boundaries are an advisory, documentation-only construct in IAM and are not actually enforced during authorization evaluation.',
+      },
+      {
+        id: 'd',
+        text: 'The call is denied, because attaching any permissions boundary to a principal causes that principal to be denied every action by default, regardless of what its identity-based policy separately allows.',
+      },
     ],
     correctAnswers: ['a'],
     explanation:
@@ -581,12 +1001,24 @@ export const questions: Question[] = [
     domain: 'Identity and Access Management',
     questionType: 'single',
     question:
-      'A security team at a 25-account Organization wants a guarantee that no principal in any member account — including that account\'s own root user, or an administrator who grants themselves AdministratorAccess — can ever disable GuardDuty or cause the account to leave the Organization. This follows a recent incident in which a departing contractor briefly retained elevated access in one account. The team already has a CloudWatch alarm that emails them whenever GuardDuty coverage drops in any account, which alerts them after the fact, and separately runs a monthly access-review meeting attended by each account\'s application owner, a process detail unrelated to the technical control being evaluated here.',
+      'A security team at a 25-account AWS Organization wants an absolute guarantee that no principal in any member account — including that account\'s own root user, and including an administrator who grants themselves the AdministratorAccess managed policy after the fact — can ever disable GuardDuty in that account or cause the account to leave the Organization entirely. This requirement follows a recent incident in which a departing contractor briefly retained elevated IAM access in one member account for several hours after their offboarding ticket was supposedly closed. The team already has a CloudWatch alarm configured to email them whenever GuardDuty coverage drops in any account, which only ever alerts them after the fact once coverage has already lapsed, and separately runs a monthly access-review meeting attended by each account\'s application owner, a process detail unrelated to the specific technical control being evaluated here.',
     options: [
-      { id: 'a', text: 'An IAM permissions boundary applied to every user and role individually' },
-      { id: 'b', text: 'A Service Control Policy attached at the appropriate OU, denying the relevant GuardDuty and Organizations actions, since SCPs apply to every principal in affected accounts including the root user' },
-      { id: 'c', text: 'The existing CloudWatch alarm, since it already provides visibility' },
-      { id: 'd', text: 'A resource-based policy directly on the GuardDuty detector resource' },
+      {
+        id: 'a',
+        text: 'An IAM permissions boundary applied individually to every IAM user and role across all 25 accounts, capping what each of them is permitted to do.',
+      },
+      {
+        id: 'b',
+        text: 'A Service Control Policy attached at the appropriate organizational unit that explicitly denies the relevant GuardDuty-disabling and Organizations-leaving actions, since SCPs are enforced against every principal in the affected accounts, including the account\'s own root user, regardless of what IAM policies exist locally.',
+      },
+      {
+        id: 'c',
+        text: 'The existing CloudWatch alarm that already emails the team whenever GuardDuty coverage drops in any account, since it provides ongoing visibility into the account\'s security posture.',
+      },
+      {
+        id: 'd',
+        text: 'A resource-based policy attached directly to the GuardDuty detector resource in each account, restricting which principals may modify or delete that detector.',
+      },
     ],
     correctAnswers: ['b'],
     explanation:
@@ -597,12 +1029,24 @@ export const questions: Question[] = [
     domain: 'Identity and Access Management',
     questionType: 'single',
     question:
-      'A developer deploying an application to EC2 needs to call several AWS APIs and wants to avoid any hardcoded or long-lived secret, with credentials that rotate automatically and require no application-level rotation logic. The application separately writes logs to a local file rotated daily by logrotate, an unrelated detail.',
+      'A developer deploying a new application onto EC2 needs that application to call several AWS APIs, and has been told to avoid any hardcoded or long-lived secret entirely, using instead credentials that rotate automatically on their own schedule and require zero application-level rotation logic to be written or maintained. The application separately writes its own operational logs to a local file that gets rotated daily by logrotate on the instance, a completely unrelated logging detail that has no bearing on how the application authenticates to AWS APIs.',
     options: [
-      { id: 'a', text: 'Store an IAM user\'s long-term access key and secret key as an environment variable set at instance launch' },
-      { id: 'b', text: 'Hardcode the credentials directly in the application\'s source repository' },
-      { id: 'c', text: 'Attach an IAM role to the EC2 instance profile, so the application retrieves short-lived, auto-rotated credentials from instance metadata' },
-      { id: 'd', text: 'Store an IAM user\'s access key in AWS Secrets Manager and have the application fetch and cache it at startup' },
+      {
+        id: 'a',
+        text: 'Create a long-term IAM user access key and secret key pair, and set them as an environment variable that gets populated at instance launch time via user data.',
+      },
+      {
+        id: 'b',
+        text: 'Hardcode the IAM user\'s access key and secret key directly into the application\'s source code repository so they are always available wherever the code is deployed.',
+      },
+      {
+        id: 'c',
+        text: 'Attach an IAM role to the EC2 instance profile, so the application retrieves short-lived, automatically rotated temporary credentials from the instance metadata service, with no long-lived secret ever stored anywhere.',
+      },
+      {
+        id: 'd',
+        text: 'Store a long-term IAM user\'s access key in AWS Secrets Manager and have the application fetch that access key and cache it locally at startup.',
+      },
     ],
     correctAnswers: ['c'],
     explanation:
@@ -613,12 +1057,24 @@ export const questions: Question[] = [
     domain: 'Identity and Access Management',
     questionType: 'multi',
     question:
-      'A company migrating from a legacy home-grown SSO portal, built and maintained in-house for the past eight years, is evaluating AWS IAM Identity Center for centralized access to its 60-account Organization. The migration project also includes retiring an old on-call paging tool in favor of a modern incident-management platform, an unrelated initiative running on the same timeline. During a design review, one engineer claims IAM Identity Center will let the company delete all IAM roles entirely, while another isn\'t sure whether it can federate with their existing Okta deployment at all. Select the TWO correct statements about IAM Identity Center.',
+      'A company migrating away from a legacy, home-grown single-sign-on portal that has been built and maintained in-house for the past eight years is now evaluating AWS IAM Identity Center as the replacement for centralized access across its 60-account Organization. The overall migration project also includes retiring an old on-call paging tool in favor of a modern incident-management platform, an entirely separate initiative that happens to be running on the same rough timeline but has no technical connection to the identity design decisions here. During a design review, one engineer claims that adopting IAM Identity Center will let the company delete every IAM role in every account entirely, while a second engineer isn\'t sure whether IAM Identity Center can federate with the company\'s existing Okta deployment at all. Select the TWO statements about IAM Identity Center that are actually correct.',
     options: [
-      { id: 'a', text: 'It replaces the need for IAM roles entirely' },
-      { id: 'b', text: 'It can only be used with a single AWS account, not an Organization' },
-      { id: 'c', text: 'It can federate with an external identity provider such as Okta or Azure AD via SAML 2.0' },
-      { id: 'd', text: 'It provides centralized, temporary-credential-based access to multiple accounts in an Organization from a single sign-in, built on top of IAM roles' },
+      {
+        id: 'a',
+        text: 'IAM Identity Center replaces the need for IAM roles entirely, meaning every existing IAM role in every account can be deleted once it is adopted.',
+      },
+      {
+        id: 'b',
+        text: 'IAM Identity Center can only ever be used with a single, standalone AWS account, and has no support for use across an AWS Organization with multiple member accounts.',
+      },
+      {
+        id: 'c',
+        text: 'IAM Identity Center can federate with an external identity provider, such as the company\'s existing Okta deployment or Azure AD, using the SAML 2.0 protocol.',
+      },
+      {
+        id: 'd',
+        text: 'IAM Identity Center provides centralized, temporary-credential-based access to multiple accounts across an Organization from a single sign-in, and it is itself built on top of underlying IAM roles rather than replacing them.',
+      },
     ],
     correctAnswers: ['c', 'd'],
     explanation:
@@ -629,12 +1085,24 @@ export const questions: Question[] = [
     domain: 'Identity and Access Management',
     questionType: 'single',
     question:
-      'During an unrelated cost review that also flagged an oversized RDS instance, a security team discovers an S3 bucket policy grants public read access. They want a service that proactively and continuously analyzes resource-based policies account-wide — S3 bucket policies, KMS key policies, IAM role trust policies — to flag anything accessible from outside their zone of trust, rather than waiting to stumble onto issues during unrelated reviews.',
+      'During an unrelated cost review that also happened to flag an oversized, underutilized RDS instance elsewhere in the account, a security team stumbles onto an S3 bucket policy that grants public read access to an entire bucket. Rather than continuing to rely on stumbling across issues like this during unrelated reviews, the team now wants a service that proactively and continuously analyzes resource-based policies account-wide — covering S3 bucket policies, KMS key policies, and IAM role trust policies alike — and flags anything that is reachable from outside their defined zone of trust.',
     options: [
-      { id: 'a', text: 'AWS CloudTrail event history' },
-      { id: 'b', text: 'AWS Trusted Advisor cost-optimization checks' },
-      { id: 'c', text: 'Amazon Macie' },
-      { id: 'd', text: 'IAM Access Analyzer' },
+      {
+        id: 'a',
+        text: 'AWS CloudTrail event history, reviewed periodically to look for API calls that might indicate a resource-based policy was changed to grant broader access.',
+      },
+      {
+        id: 'b',
+        text: 'AWS Trusted Advisor\'s cost-optimization checks, the same category of check that surfaced the oversized RDS instance during the unrelated cost review.',
+      },
+      {
+        id: 'c',
+        text: 'Amazon Macie, applied across the account to continuously evaluate resource-based policies for external accessibility.',
+      },
+      {
+        id: 'd',
+        text: 'IAM Access Analyzer, which uses automated reasoning to continuously evaluate resource-based policies such as S3 bucket policies, KMS key policies, and IAM role trust policies, and flags any that grant access to a principal outside the account\'s defined zone of trust.',
+      },
     ],
     correctAnswers: ['d'],
     explanation:
@@ -645,12 +1113,24 @@ export const questions: Question[] = [
     domain: 'Identity and Access Management',
     questionType: 'single',
     question:
-      'A company wants employees authenticated by their on-premises Active Directory to assume an IAM role in AWS with permissions scoped according to their AD group membership, without creating individual IAM users for each employee. The company\'s helpdesk separately manages VPN client certificates for remote access, unrelated to this federation design.',
+      'A company wants employees who are already authenticated against its on-premises Active Directory to be able to assume an IAM role in AWS, with the specific permissions of that role scoped according to which AD group the employee belongs to, and specifically without creating a separate, individual IAM user account for every single employee in the company. The company\'s helpdesk team separately manages VPN client certificates used for remote network access, which is an entirely unrelated responsibility that has no bearing on how this AWS federation design should work.',
     options: [
-      { id: 'a', text: 'SAML 2.0 federation from AD FS to an IAM role, using group/attribute mappings in the SAML assertion to scope the role session' },
-      { id: 'b', text: 'Create a matching IAM user for every AD user with synchronized passwords' },
-      { id: 'c', text: 'Share one IAM access key among the whole team' },
-      { id: 'd', text: 'Distribute root user credentials to the helpdesk team for provisioning' },
+      {
+        id: 'a',
+        text: 'SAML 2.0 federation from an on-premises AD FS server to an IAM role, using group- or attribute-based mappings embedded in the SAML assertion to scope the permissions of each resulting role session according to AD group membership.',
+      },
+      {
+        id: 'b',
+        text: 'Create a matching IAM user account for every single Active Directory user, keeping each IAM user\'s password synchronized with that employee\'s AD password.',
+      },
+      {
+        id: 'c',
+        text: 'Share a single long-term IAM access key among the entire team, so everyone authenticates to AWS using the same set of credentials.',
+      },
+      {
+        id: 'd',
+        text: 'Distribute the AWS account\'s root user credentials to members of the helpdesk team so they can provision access for employees as requests come in.',
+      },
     ],
     correctAnswers: ['a'],
     explanation:
@@ -661,12 +1141,24 @@ export const questions: Question[] = [
     domain: 'Identity and Access Management',
     questionType: 'single',
     question:
-      'A Lambda function\'s execution role currently has AdministratorAccess, flagged in a security review. The function also has a reserved concurrency setting of 5, an unrelated performance/cost configuration. The team wants to right-size the role\'s permissions based on the function\'s actual observed behavior, rather than guessing at a policy from documentation.',
+      'A Lambda function\'s execution role currently has the AdministratorAccess managed policy attached to it, a configuration flagged during a recent internal security review. The same function has a reserved concurrency setting of 5, an entirely unrelated performance-and-cost configuration that limits how many concurrent invocations it can have but has no bearing on the permissions issue. The team now wants to right-size the role\'s permissions based on the function\'s actual, observed API behavior over some period of real operation, rather than guessing at an appropriate policy purely from reading service documentation.',
     options: [
-      { id: 'a', text: 'Remove the execution role entirely, leaving the function with no permissions' },
-      { id: 'b', text: 'Use IAM Access Analyzer\'s policy generation feature, which reviews the role\'s actual CloudTrail activity over a chosen period and proposes a least-privilege policy to review and refine' },
-      { id: 'c', text: 'Replace AdministratorAccess with PowerUserAccess, since it excludes some IAM/Organizations actions' },
-      { id: 'd', text: 'Leave the policy as-is, since Lambda execution roles are commonly over-permissioned in practice' },
+      {
+        id: 'a',
+        text: 'Remove the execution role from the function entirely, leaving the Lambda function with no attached IAM role or permissions at all.',
+      },
+      {
+        id: 'b',
+        text: 'Use IAM Access Analyzer\'s policy generation feature, which reviews the role\'s actual recorded CloudTrail activity over a chosen historical period and proposes a least-privilege policy, grounded in that observed usage, for the team to review and refine before applying it.',
+      },
+      {
+        id: 'c',
+        text: 'Replace the AdministratorAccess policy with the AWS-managed PowerUserAccess policy instead, since PowerUserAccess excludes some IAM- and Organizations-related actions that AdministratorAccess includes.',
+      },
+      {
+        id: 'd',
+        text: 'Leave the function\'s current AdministratorAccess policy exactly as it is, on the reasoning that Lambda execution roles are commonly over-permissioned in practice across the industry anyway.',
+      },
     ],
     correctAnswers: ['b'],
     explanation:
@@ -677,12 +1169,24 @@ export const questions: Question[] = [
     domain: 'Identity and Access Management',
     questionType: 'multi',
     question:
-      'A company wants to require MFA for sensitive AWS API and console actions across its Organization, evaluated during a brainstorm that also included an unrelated proposal to shorten password rotation from 90 to 60 days. Select the TWO effective, AWS-native ways to enforce MFA.',
+      'A company wants to require multi-factor authentication for a defined set of sensitive AWS API and console actions across its entire Organization, a requirement that emerged during a brainstorming session that also separately floated an unrelated proposal to shorten the password rotation interval from 90 days down to 60 days. Select the TWO effective, AWS-native ways to actually enforce MFA for those sensitive actions.',
     options: [
-      { id: 'a', text: 'Ask users to type their password twice during login' },
-      { id: 'b', text: 'An IAM policy condition requiring aws:MultiFactorAuthPresent for sensitive actions' },
-      { id: 'c', text: 'Shortening the password rotation period from 90 to 60 days' },
-      { id: 'd', text: 'An SCP that denies sensitive actions when aws:MultiFactorAuthPresent is false, enforced regardless of local IAM configuration' },
+      {
+        id: 'a',
+        text: 'Ask users to type their password twice in a row during the console login flow, as a second confirmation step.',
+      },
+      {
+        id: 'b',
+        text: 'An IAM policy statement with a condition requiring aws:MultiFactorAuthPresent to be true before the sensitive actions covered by that policy are permitted.',
+      },
+      {
+        id: 'c',
+        text: 'Shortening the password rotation period across the Organization from 90 days down to 60 days, as was separately proposed during the same brainstorming session.',
+      },
+      {
+        id: 'd',
+        text: 'A Service Control Policy that denies the same sensitive actions whenever aws:MultiFactorAuthPresent evaluates to false, enforced organization-wide regardless of whatever local IAM policy configuration exists in each member account.',
+      },
     ],
     correctAnswers: ['b', 'd'],
     explanation:
@@ -693,12 +1197,24 @@ export const questions: Question[] = [
     domain: 'Identity and Access Management',
     questionType: 'single',
     question:
-      'An organization vending its 50th AWS account wants every new account to automatically receive a consistent security baseline — guardrails, centralized logging, a dedicated audit/security account structure — the moment it\'s created, without a manual setup checklist, after a routine internal audit found that manual account-provisioning steps were being completed inconsistently across different engineering teams. The team is separately evaluating a third-party CSPM tool from AWS Marketplace, an undecided, unrelated initiative.',
+      'An organization that is about to vend its 50th AWS account wants every newly created account to automatically receive a consistent security baseline — including preventive guardrails, centralized logging configuration, and a dedicated audit/security account structure — the instant the account is created, with no manual setup checklist for anyone to follow, after a routine internal audit found that manual account-provisioning steps had been completed inconsistently across different engineering teams over the preceding year. The team is separately evaluating, on an undecided and unrelated timeline, whether to also adopt a third-party CSPM tool available through AWS Marketplace.',
     options: [
-      { id: 'a', text: 'AWS IAM Access Analyzer, run manually after each new account is created' },
-      { id: 'b', text: 'AWS Organizations alone, using custom Lambda automation triggered on account creation, without Control Tower' },
-      { id: 'c', text: 'AWS Control Tower\'s Account Factory, which automates a secure multi-account landing zone with guardrails applied to newly vended accounts' },
-      { id: 'd', text: 'AWS Service Catalog, publishing a self-service portfolio that provisions a new account on request' },
+      {
+        id: 'a',
+        text: 'AWS IAM Access Analyzer, run manually as a one-time check by a security engineer immediately after each new account is created.',
+      },
+      {
+        id: 'b',
+        text: 'AWS Organizations by itself, paired with a set of custom Lambda functions the team builds and maintains, triggered on account creation, deliberately without adopting AWS Control Tower.',
+      },
+      {
+        id: 'c',
+        text: 'AWS Control Tower\'s Account Factory, which automates the setup of a secure multi-account landing zone and applies the defined guardrails automatically to every newly vended account at the moment of creation.',
+      },
+      {
+        id: 'd',
+        text: 'AWS Service Catalog, publishing a self-service portfolio item that provisions a new account whenever someone submits a request through the catalog.',
+      },
     ],
     correctAnswers: ['c'],
     explanation:
@@ -709,12 +1225,24 @@ export const questions: Question[] = [
     domain: 'Identity and Access Management',
     questionType: 'single',
     question:
-      'A security engineer at Company A needs to grant Company A\'s application, running as an IAM role, read access to S3 buckets owned by Company B, without Company B provisioning any IAM users, sharing access keys, or having to create and maintain a new IAM role for Company A to assume. Company B separately enforces S3 Object Lock on those buckets for retention reasons, unrelated to this access design. Which approach best satisfies this, with the least ongoing credential management overhead?',
+      'A security engineer at Company A needs to grant an application running as an IAM role in Company A\'s account read access to a set of S3 buckets that are owned and managed by Company B, under the specific constraint that Company B must not have to provision any IAM users, share any long-term access keys, or create and continually maintain a brand-new IAM role purely so Company A can assume it. Company B separately enforces S3 Object Lock on those buckets for unrelated retention-compliance reasons that have no bearing on this cross-account access design. Which approach best satisfies all of the stated constraints while adding the least ongoing credential-management overhead for Company B?',
     options: [
-      { id: 'a', text: 'Company B creates an IAM user scoped to the buckets and shares its long-term access key with Company A' },
-      { id: 'b', text: 'Company B creates an IAM role with a trust policy allowing Company A\'s account to assume it, and Company A calls sts:AssumeRole before each access' },
-      { id: 'c', text: 'Company B temporarily disables the buckets\' Block Public Access setting so Company A\'s application can reach them without any explicit grant' },
-      { id: 'd', text: 'Company B\'s bucket policy grants access directly to Company A\'s specific IAM role ARN as principal, requiring no new role creation or key sharing by Company B' },
+      {
+        id: 'a',
+        text: 'Company B creates a dedicated IAM user scoped to the relevant buckets and shares that IAM user\'s long-term access key directly with Company A.',
+      },
+      {
+        id: 'b',
+        text: 'Company B creates a new IAM role with a trust policy allowing Company A\'s account to assume it, and Company A\'s application calls sts:AssumeRole to obtain temporary credentials before each access to the buckets.',
+      },
+      {
+        id: 'c',
+        text: 'Company B temporarily disables the Block Public Access setting on the affected buckets so that Company A\'s application can reach the objects without any explicit access grant being configured at all.',
+      },
+      {
+        id: 'd',
+        text: 'Company B\'s S3 bucket policy grants access directly to Company A\'s specific IAM role ARN as the named principal, which requires no new IAM role creation and no key sharing on Company B\'s part at all.',
+      },
     ],
     correctAnswers: ['d'],
     explanation:
@@ -729,12 +1257,24 @@ export const questions: Question[] = [
     domain: 'Data Protection',
     questionType: 'single',
     question:
-      'A payments company storing transaction receipts in S3 needs encryption where AWS manages the durability and availability of the key material, while the company retains control over the key\'s rotation policy and key policy, and can audit every cryptographic operation via CloudTrail. The bucket also has S3 Intelligent-Tiering enabled for cost optimization, unrelated to the encryption decision. The company also has a strict internal policy against ever handling raw key material directly.',
+      'A payments company storing transaction receipts in S3 needs an encryption approach where AWS manages the underlying durability and availability of the cryptographic key material itself, while the company retains full control over the key\'s rotation policy and key policy, and can audit every single cryptographic operation performed against that key through CloudTrail. The bucket in question also has S3 Intelligent-Tiering enabled to optimize storage cost across access tiers, a configuration entirely unrelated to the encryption decision being made here. The company additionally maintains a strict internal policy that forbids its own engineers from ever handling raw key material directly, under any circumstances.',
     options: [
-      { id: 'a', text: 'SSE-KMS using a customer managed key' },
-      { id: 'b', text: 'SSE-S3' },
-      { id: 'c', text: 'SSE-C, supplying a customer-provided key on every request' },
-      { id: 'd', text: 'Client-side encryption with a key generated and stored entirely outside AWS' },
+      {
+        id: 'a',
+        text: 'SSE-KMS using a customer managed KMS key, where the company defines and controls the key policy and rotation setting while AWS KMS itself stores and protects the underlying key material.',
+      },
+      {
+        id: 'b',
+        text: 'SSE-S3, which encrypts objects using keys that are fully owned and managed by AWS with no customer-controlled key policy exposed at all.',
+      },
+      {
+        id: 'c',
+        text: 'SSE-C, where the company supplies its own encryption key as part of every single S3 request, and AWS does not store that key at all after the request completes.',
+      },
+      {
+        id: 'd',
+        text: 'Client-side encryption using a key that is generated and stored entirely outside of any AWS service, managed independently by the company\'s own key-management infrastructure.',
+      },
     ],
     correctAnswers: ['a'],
     explanation:
@@ -745,12 +1285,24 @@ export const questions: Question[] = [
     domain: 'Data Protection',
     questionType: 'single',
     question:
-      'A security team must guarantee that a KMS customer managed key can never be used by any principal outside a specific list of IAM roles, even if a future overly permissive IAM policy is mistakenly attached to some other role in the account. The account also uses Config conformance packs to monitor unrelated S3 public-access settings. Given that IAM policies elsewhere in the account cannot be fully trusted to stay correctly scoped, where must this restriction ultimately be enforced?',
+      'A security team must guarantee that a particular KMS customer managed key can never be used by any principal outside of a specific, pre-approved list of IAM roles, even in the scenario where some future overly permissive IAM policy is mistakenly attached to an entirely different, unrelated role somewhere else in the account. The account also uses AWS Config conformance packs to monitor an unrelated set of S3 public-access settings, which has no bearing on how KMS key access should be restricted. Given that IAM policies elsewhere in the account cannot be fully trusted to always remain correctly scoped over time, where must this restriction ultimately be enforced to hold regardless of what any other IAM policy in the account says?',
     options: [
-      { id: 'a', text: 'Solely in IAM policies attached to each of the approved roles' },
-      { id: 'b', text: 'In the KMS key policy, which is the primary, always-consulted access control mechanism for the key' },
-      { id: 'c', text: 'In an S3 bucket policy referencing the key ARN' },
-      { id: 'd', text: 'In a security group rule limiting network access to the KMS endpoint' },
+      {
+        id: 'a',
+        text: 'Solely within the IAM policies attached to each of the specific approved roles, with no corresponding restriction placed on the key itself.',
+      },
+      {
+        id: 'b',
+        text: 'In the KMS key policy, which is the primary access-control document that is always consulted for any attempted use of that specific key, regardless of what IAM policies exist elsewhere in the account.',
+      },
+      {
+        id: 'c',
+        text: 'In an S3 bucket policy that references the KMS key\'s ARN, restricting which principals may use that key when accessing objects in that particular bucket.',
+      },
+      {
+        id: 'd',
+        text: 'In a security group rule that limits network-level access to the regional KMS service endpoint from specific subnets.',
+      },
     ],
     correctAnswers: ['b'],
     explanation:
@@ -761,12 +1313,24 @@ export const questions: Question[] = [
     domain: 'Data Protection',
     questionType: 'single',
     question:
-      'A company wants a KMS customer managed key\'s cryptographic material to rotate automatically on a roughly annual cadence without updating the key\'s ARN, alias, or any application reference, and without re-encrypting previously encrypted data. The team separately debated renaming an S3 bucket for an unrelated rebranding effort.',
+      'A company wants a KMS customer managed key\'s underlying cryptographic material to rotate automatically on a roughly annual cadence, without ever having to update the key\'s ARN, its alias, or any application configuration that references it, and critically without needing to re-encrypt any of the data that was previously encrypted under that key. The team separately spent some time debating whether to rename an S3 bucket as part of an unrelated rebranding effort, a discussion with no bearing on this key-rotation requirement.',
     options: [
-      { id: 'a', text: 'Manually create a brand-new KMS key every year and update every application reference to the new key ARN' },
-      { id: 'b', text: 'Use SSE-C with a client-supplied key that the application rotates itself on a cron job' },
-      { id: 'c', text: 'Enable automatic key rotation on the customer managed KMS key' },
-      { id: 'd', text: 'Disable the key annually and create a replacement key under the same alias' },
+      {
+        id: 'a',
+        text: 'Manually create a brand-new KMS key every year and update every single application reference throughout the environment to point at the new key\'s ARN.',
+      },
+      {
+        id: 'b',
+        text: 'Use SSE-C with a client-supplied encryption key that the application itself is responsible for rotating on its own recurring cron-scheduled job.',
+      },
+      {
+        id: 'c',
+        text: 'Enable automatic key rotation directly on the customer managed KMS key, which rotates the underlying cryptographic material on approximately a yearly basis while preserving the same key ID and ARN and keeping previously encrypted data decryptable without any re-encryption.',
+      },
+      {
+        id: 'd',
+        text: 'Disable the existing key once a year and create a brand-new replacement key registered under the exact same alias each time.',
+      },
     ],
     correctAnswers: ['c'],
     explanation:
@@ -777,12 +1341,24 @@ export const questions: Question[] = [
     domain: 'Data Protection',
     questionType: 'multi',
     question:
-      'A media company wants to protect archival video assets in S3 from accidental permanent deletion or overwrite, with the ability to recover a prior object state for at least 90 days even if someone with valid delete permissions removes it. The bucket also has cross-region replication configured for disaster recovery, which by itself does not protect against a delete replicating to the second region too. Select the TWO S3 features that should be enabled.',
+      'A media company wants to protect its archival video assets stored in S3 from accidental permanent deletion or overwrite, with the ability to recover a prior version of an object for at least 90 days even in the scenario where someone who legitimately holds valid delete permissions removes it. The bucket also has cross-region replication configured for disaster-recovery purposes, but that replication configuration by itself does nothing to stop a delete operation from simply replicating through to the second region as well. Select the TWO S3 features that should be enabled together to meet this recovery requirement.',
     options: [
-      { id: 'a', text: 'S3 Versioning, so a delete creates a delete marker rather than destroying the prior object version' },
-      { id: 'b', text: 'S3 Transfer Acceleration, to speed up uploads of new assets' },
-      { id: 'c', text: 'S3 Object Lock in governance mode with a 90-day retention period on object versions' },
-      { id: 'd', text: 'S3 Intelligent-Tiering, to automatically move older assets to cheaper storage classes' },
+      {
+        id: 'a',
+        text: 'S3 Versioning, so that a delete operation on a versioned object creates a delete marker rather than permanently destroying the prior version of that object.',
+      },
+      {
+        id: 'b',
+        text: 'S3 Transfer Acceleration, used to speed up the upload of newly created video assets into the bucket over long network distances.',
+      },
+      {
+        id: 'c',
+        text: 'S3 Object Lock configured in governance mode with a 90-day retention period applied to object versions, preventing those versions from being permanently removed until the retention period has elapsed.',
+      },
+      {
+        id: 'd',
+        text: 'S3 Intelligent-Tiering, which automatically moves older, less-frequently-accessed assets into cheaper storage classes over time.',
+      },
     ],
     correctAnswers: ['a', 'c'],
     explanation:
@@ -793,12 +1369,24 @@ export const questions: Question[] = [
     domain: 'Data Protection',
     questionType: 'single',
     question:
-      'A data science team must discover and classify sensitive data such as PII and payment card numbers scattered across dozens of S3 buckets accumulated over several years, using managed, ML-based data identifiers rather than custom regex scripts. The team also uses Amazon SageMaker for unrelated model training work.',
+      'A data science team must discover and classify sensitive data such as personally identifiable information and payment card numbers that are scattered across dozens of S3 buckets accumulated organically over several years of different projects, and has been asked to use managed, machine-learning-based data identifiers to do this rather than writing and maintaining a set of custom regular-expression scripts themselves. The same team separately uses Amazon SageMaker for an entirely unrelated model-training workload that has nothing to do with this data-discovery requirement.',
     options: [
-      { id: 'a', text: 'AWS Config, using custom rules that check bucket tags' },
-      { id: 'b', text: 'Amazon GuardDuty S3 Protection, analyzing CloudTrail S3 data events for anomalous access patterns' },
-      { id: 'c', text: 'AWS Trusted Advisor\'s security checks' },
-      { id: 'd', text: 'Amazon Macie, using its managed data identifiers to automatically discover and classify sensitive data across the buckets' },
+      {
+        id: 'a',
+        text: 'AWS Config, using a custom rule that inspects the tags applied to each S3 bucket to infer whether it might contain sensitive data.',
+      },
+      {
+        id: 'b',
+        text: 'Amazon GuardDuty S3 Protection, which analyzes CloudTrail S3 data events for anomalous access patterns rather than examining the actual content of stored objects.',
+      },
+      {
+        id: 'c',
+        text: 'AWS Trusted Advisor\'s security checks, which surface general configuration best-practice findings rather than performing content-level data classification.',
+      },
+      {
+        id: 'd',
+        text: 'Amazon Macie, using its managed, machine-learning-based data identifiers to automatically discover and classify sensitive data such as PII and payment card numbers across all of the buckets.',
+      },
     ],
     correctAnswers: ['d'],
     explanation:
@@ -809,12 +1397,24 @@ export const questions: Question[] = [
     domain: 'Data Protection',
     questionType: 'single',
     question:
-      'A healthcare application must encrypt data client-side before it leaves the application, so AWS never has access to the plaintext, using an audited, managed cryptographic library rather than custom encryption code. The application already uses SSE-S3 on a separate, lower-sensitivity logging bucket, which does not meet this new requirement.',
+      'A healthcare application must encrypt sensitive patient data client-side before that data ever leaves the application, such that AWS never has access to the plaintext at any point, and the team has been told to use an audited, managed cryptographic library for this rather than writing custom encryption code of their own. The application already uses SSE-S3 on a separate, lower-sensitivity bucket used only for application logs, a configuration which does not meet this new, stricter requirement for the patient-data workload.',
     options: [
-      { id: 'a', text: 'The AWS Encryption SDK (or the Amazon S3 Encryption Client), generating data keys via KMS but performing the encryption locally before upload' },
-      { id: 'b', text: 'SSE-KMS on the destination bucket' },
-      { id: 'c', text: 'SSE-S3, matching what\'s used on the existing logging bucket' },
-      { id: 'd', text: 'S3 Bucket Keys' },
+      {
+        id: 'a',
+        text: 'The AWS Encryption SDK (or the equivalent Amazon S3 Encryption Client), which generates data keys via KMS but performs the actual encryption operation locally within the application before the ciphertext is ever uploaded to S3.',
+      },
+      {
+        id: 'b',
+        text: 'SSE-KMS applied to the destination bucket, where the S3 service itself performs the encryption operation server-side using a KMS-backed key.',
+      },
+      {
+        id: 'c',
+        text: 'SSE-S3, matching the same server-side encryption approach already used on the existing, lower-sensitivity application-log bucket.',
+      },
+      {
+        id: 'd',
+        text: 'S3 Bucket Keys, a cost-optimization feature that reduces the number of calls made to KMS when SSE-KMS is already in use.',
+      },
     ],
     correctAnswers: ['a'],
     explanation:
@@ -825,12 +1425,24 @@ export const questions: Question[] = [
     domain: 'Data Protection',
     questionType: 'single',
     question:
-      'A platform team manages database credentials, API keys, and OAuth tokens for several microservices and wants automatic rotation on a schedule, fine-grained IAM-based access control per secret, and CloudTrail-logged visibility into every retrieval. The team currently bakes some of these as plaintext environment variables into container images and is separately evaluating a switch from Docker Compose to a different local dev tool, unrelated to this decision.',
+      'A platform team manages database credentials, third-party API keys, and OAuth tokens for a set of several dozen microservices, and wants a solution that provides automatic rotation on a defined schedule, fine-grained IAM-based access control on a per-secret basis, and CloudTrail-logged visibility into every single retrieval of any of those values. The team currently bakes some of these same secrets as plaintext environment variables directly into container images at build time, and is separately evaluating, on an unrelated track, whether to switch from Docker Compose to a different local development orchestration tool for their laptops.',
     options: [
-      { id: 'a', text: 'AWS Systems Manager Parameter Store, Standard tier, storing values as SecureString parameters' },
-      { id: 'b', text: 'AWS Secrets Manager, which provides built-in automatic rotation, per-secret resource policies, and CloudTrail logging of every access' },
-      { id: 'c', text: 'Continuing to bake plaintext values into the container image' },
-      { id: 'd', text: 'A private S3 bucket holding a JSON file of all the credentials' },
+      {
+        id: 'a',
+        text: 'AWS Systems Manager Parameter Store, Standard tier, storing each value as a SecureString parameter encrypted with a KMS key and controlled via IAM policy.',
+      },
+      {
+        id: 'b',
+        text: 'AWS Secrets Manager, which provides built-in automatic rotation (including native rotation Lambda functions for several common database engines), per-secret resource policies for fine-grained access control, and CloudTrail logging of every access to a secret.',
+      },
+      {
+        id: 'c',
+        text: 'Continuing the current practice of baking plaintext secret values directly into the container image at build time, since that approach is already familiar to the team.',
+      },
+      {
+        id: 'd',
+        text: 'A private S3 bucket holding a single JSON file that contains all of the credentials for every microservice, accessed by each service at startup.',
+      },
     ],
     correctAnswers: ['b'],
     explanation:
@@ -841,12 +1453,24 @@ export const questions: Question[] = [
     domain: 'Data Protection',
     questionType: 'multi',
     question:
-      'A company wants data in transit between clients and its Application Load Balancer, and separately between the ALB and backend EC2 targets, encrypted end-to-end using TLS. The backend fleet also runs a sidecar log shipper unrelated to this requirement. Select the TWO configurations needed.',
+      'A company wants traffic encrypted end-to-end with TLS both between its clients and its public-facing Application Load Balancer, and separately between that ALB and the backend EC2 targets it forwards traffic to, so that no leg of the connection is ever transmitted in plaintext. The backend EC2 fleet also runs a sidecar log-shipping process on each instance, a component entirely unrelated to this transport-encryption requirement. Select the TWO configurations needed to achieve this end-to-end TLS setup.',
     options: [
-      { id: 'a', text: 'Terminate TLS at the ALB using an ACM-issued certificate on an HTTPS listener' },
-      { id: 'b', text: 'Use HTTP throughout, relying on the VPC\'s private addressing for security' },
-      { id: 'c', text: 'Disable ALB access logging to reduce the number of TLS handshakes required' },
-      { id: 'd', text: 'Set the target group\'s protocol to HTTPS so the ALB re-encrypts traffic to the backend EC2 targets' },
+      {
+        id: 'a',
+        text: 'Terminate TLS at the ALB using a certificate issued by AWS Certificate Manager and bound to an HTTPS listener, so the client-facing leg of the connection is encrypted.',
+      },
+      {
+        id: 'b',
+        text: 'Use plain HTTP for the entire path from client to ALB to backend target, relying instead on the VPC\'s private IP addressing scheme to provide adequate security for the traffic.',
+      },
+      {
+        id: 'c',
+        text: 'Disable ALB access logging on the load balancer, in order to reduce the number of TLS handshakes the load balancer needs to perform per request.',
+      },
+      {
+        id: 'd',
+        text: 'Set the target group\'s protocol to HTTPS, so the ALB re-encrypts the traffic before forwarding it on to the backend EC2 targets, encrypting the second leg of the connection as well.',
+      },
     ],
     correctAnswers: ['a', 'd'],
     explanation:
@@ -857,12 +1481,24 @@ export const questions: Question[] = [
     domain: 'Data Protection',
     questionType: 'single',
     question:
-      'A financial services company must ensure a specific KMS key can only be used to decrypt data when the request originates from within their corporate VPC via a specific VPC endpoint, never directly over the public internet, even with otherwise-valid IAM credentials. The compliance team separately reviews SOC 2 reports annually via AWS Artifact, unrelated to enforcing this restriction.',
+      'A financial services company must ensure that a specific KMS key can only ever be used to decrypt data when the decryption request originates from within their corporate VPC through one specific, designated VPC endpoint, and never directly over the public internet, even in a scenario where the requesting principal presents otherwise fully valid IAM credentials. The compliance team separately reviews the company\'s SOC 2 report once a year through AWS Artifact, an activity entirely unrelated to enforcing this particular network-origin restriction on the key.',
     options: [
-      { id: 'a', text: 'Rely on strong IAM user passwords' },
-      { id: 'b', text: 'Enable S3 versioning on the bucket holding the encrypted objects' },
-      { id: 'c', text: 'Add a condition to the KMS key policy (or an IAM policy) using aws:SourceVpce or aws:SourceVpc to restrict key usage to requests through a specific VPC endpoint' },
-      { id: 'd', text: 'Switch from SSE-KMS to SSE-S3 for the affected objects' },
+      {
+        id: 'a',
+        text: 'Rely on requiring strong, complex passwords for the IAM users who are permitted to use the key.',
+      },
+      {
+        id: 'b',
+        text: 'Enable S3 versioning on the bucket that holds the objects encrypted with this key, to preserve prior object versions.',
+      },
+      {
+        id: 'c',
+        text: 'Add a condition to the KMS key policy (or an equivalent IAM policy) using the aws:SourceVpce or aws:SourceVpc condition key, restricting use of the key to requests that traverse the one specific, designated VPC endpoint.',
+      },
+      {
+        id: 'd',
+        text: 'Switch the affected objects from SSE-KMS to SSE-S3, which uses AWS-owned keys instead of a customer managed key with a configurable key policy.',
+      },
     ],
     correctAnswers: ['c'],
     explanation:
@@ -873,12 +1509,24 @@ export const questions: Question[] = [
     domain: 'Data Protection',
     questionType: 'single',
     question:
-      'A regulated financial company must guarantee that certain highly sensitive key material lives exclusively in single-tenant, customer-controlled hardware security modules validated to FIPS 140-2 Level 3, separate from any AWS-operated multi-tenant HSM fleet, with no AWS operational access to the material. The company already uses AWS KMS customer managed keys for less-sensitive workloads, which don\'t meet this stricter exclusivity bar.',
+      'A regulated financial company must guarantee that a particular category of highly sensitive key material lives exclusively inside single-tenant, customer-controlled hardware security modules that are validated to FIPS 140-2 Level 3, kept entirely separate from any AWS-operated, multi-tenant HSM fleet used elsewhere in the platform, with no AWS operational personnel able to access that material under any circumstances. The company already uses AWS KMS customer managed keys for a separate set of less-sensitive workloads, a configuration that does not meet this considerably stricter exclusivity requirement for the sensitive category of key material in question.',
     options: [
-      { id: 'a', text: 'AWS KMS with AWS managed keys' },
-      { id: 'b', text: 'AWS KMS with customer managed keys' },
-      { id: 'c', text: 'AWS Certificate Manager, issuing a private certificate whose private key is generated and stored in AWS-managed infrastructure' },
-      { id: 'd', text: 'AWS CloudHSM, providing dedicated, single-tenant FIPS 140-2 Level 3 validated HSMs under the customer\'s exclusive control' },
+      {
+        id: 'a',
+        text: 'AWS KMS using AWS managed keys, where AWS itself both owns and fully manages the key\'s lifecycle and policy on the customer\'s behalf.',
+      },
+      {
+        id: 'b',
+        text: 'AWS KMS using customer managed keys, where the customer controls the key policy and rotation setting but the underlying key material still resides within AWS\'s own shared, multi-tenant HSM fleet.',
+      },
+      {
+        id: 'c',
+        text: 'AWS Certificate Manager, issuing a private certificate whose private key is generated and stored within AWS-managed infrastructure rather than in customer-exclusive hardware.',
+      },
+      {
+        id: 'd',
+        text: 'AWS CloudHSM, which provisions dedicated, single-tenant hardware security modules validated to FIPS 140-2 Level 3 that remain under the customer\'s exclusive administrative control, entirely separate from AWS KMS\'s shared HSM fleet.',
+      },
     ],
     correctAnswers: ['d'],
     explanation:
@@ -889,12 +1537,24 @@ export const questions: Question[] = [
     domain: 'Data Protection',
     questionType: 'single',
     question:
-      'A company wants to let a third-party SaaS vendor decrypt specific objects encrypted with a customer managed KMS key, without provisioning any IAM identity for the vendor in the company\'s own account, and wants the access to be easily revocable later without editing the key policy. The vendor separately requested a copy of the company\'s SOC 2 report, an unrelated administrative request handled through AWS Artifact.',
+      'A company wants to let a third-party SaaS vendor decrypt a specific set of objects that were encrypted using a customer managed KMS key, without provisioning any IAM identity for that vendor inside the company\'s own AWS account, and wants that access to be easily and independently revocable later without having to edit the key policy document itself. The vendor separately requested a copy of the company\'s SOC 2 report as part of its own vendor-onboarding process, an unrelated administrative request that the company handled through AWS Artifact.',
     options: [
-      { id: 'a', text: 'Create a KMS grant on the key for the vendor\'s external AWS account/principal, scoped to specific operations, which can later be retired independently of the key policy' },
-      { id: 'b', text: 'Add the vendor\'s AWS account as a full principal in the key policy with kms:* permissions' },
-      { id: 'c', text: 'Email the vendor the key\'s plaintext key material' },
-      { id: 'd', text: 'Set the key policy\'s principal to "*"' },
+      {
+        id: 'a',
+        text: 'Create a KMS grant on the key naming the vendor\'s external AWS account or principal, scoped to a specific set of allowed operations, which can later be retired independently of, and without needing to edit, the key policy itself.',
+      },
+      {
+        id: 'b',
+        text: 'Add the vendor\'s AWS account directly as a full principal statement in the key policy, granting it the kms:* action across every operation the key supports.',
+      },
+      {
+        id: 'c',
+        text: 'Email the vendor a copy of the key\'s raw plaintext key material so they can decrypt the objects using their own local cryptographic tooling.',
+      },
+      {
+        id: 'd',
+        text: 'Set the key policy\'s principal element to "*", allowing any AWS principal anywhere to use the key subject only to whatever other conditions are present.',
+      },
     ],
     correctAnswers: ['a'],
     explanation:
@@ -905,12 +1565,24 @@ export const questions: Question[] = [
     domain: 'Data Protection',
     questionType: 'multi',
     question:
-      'A security team reviewing an RDS instance storing customer PII learns it was provisioned three years ago, before a formal encryption standard existed, and separately learns its maintenance window is Sunday 3-4am UTC, unrelated to this review. Select the TWO controls that should be implemented to protect this data both at rest and in transit.',
+      'A security team reviewing an RDS instance that stores customer PII learns that the instance was originally provisioned three years ago, before the company had adopted a formal encryption standard for new databases, and separately learns that its maintenance window is set to Sunday 3-4am UTC, a scheduling detail entirely unrelated to this particular review. Select the TWO controls that should be implemented to protect this specific instance\'s data both at rest and in transit going forward.',
     options: [
-      { id: 'a', text: 'Enable encryption at rest on the RDS instance (via a snapshot-restore to an encrypted copy, since encryption cannot be toggled on an existing unencrypted instance) using a KMS key' },
-      { id: 'b', text: 'Enforce SSL/TLS connections to the database via a parameter group setting such as rds.force_ssl or require_secure_transport' },
-      { id: 'c', text: 'Disable automated backups to reduce the attack surface' },
-      { id: 'd', text: 'Make the RDS instance publicly accessible so the security team can query it directly for the review' },
+      {
+        id: 'a',
+        text: 'Enable encryption at rest on the RDS instance by performing a snapshot of the existing instance and restoring that snapshot into a new, encrypted copy using a KMS key, since encryption cannot be toggled on directly for an already-running, unencrypted instance.',
+      },
+      {
+        id: 'b',
+        text: 'Enforce SSL/TLS for all connections to the database by setting the appropriate parameter group option, such as rds.force_ssl for certain engines or require_secure_transport for others.',
+      },
+      {
+        id: 'c',
+        text: 'Disable automated backups on the instance entirely, on the reasoning that this reduces the overall attack surface associated with the database.',
+      },
+      {
+        id: 'd',
+        text: 'Make the RDS instance publicly accessible over the internet so that the security team can connect to it directly from outside the VPC to carry out this review.',
+      },
     ],
     correctAnswers: ['a', 'b'],
     explanation:
@@ -925,12 +1597,24 @@ export const questions: Question[] = [
     domain: 'Management and Security Governance',
     questionType: 'single',
     question:
-      'A company wants to guarantee that no account in its "Sandbox" organizational unit can ever launch resources outside us-east-1 and eu-west-1, regardless of what IAM permissions a developer grants themselves within those accounts, after a recent audit found a developer with broad IAM permissions in a sandbox account. Sandbox OU accounts are also subject to a $500/month AWS Budgets alert, an unrelated cost-control mechanism.',
+      'A company wants an absolute guarantee that no account inside its "Sandbox" organizational unit can ever launch resources in any AWS region outside of us-east-1 and eu-west-1, regardless of whatever IAM permissions a developer might grant themselves from within one of those sandbox accounts, following a recent audit that found a developer had accumulated broad, self-granted IAM permissions inside a sandbox account over several months. Accounts inside the Sandbox OU are also subject to a $500/month AWS Budgets alert, an entirely unrelated cost-control mechanism that has no bearing on the region-restriction requirement here.',
     options: [
-      { id: 'a', text: 'An IAM policy attached only to each account\'s root user' },
-      { id: 'b', text: 'A Service Control Policy attached to the Sandbox OU that denies actions unless aws:RequestedRegion is in the allowed list' },
-      { id: 'c', text: 'The existing AWS Budgets alert, tightened to also flag unusual regions' },
-      { id: 'd', text: 'A CloudWatch alarm that notifies when a resource is created outside the allowed regions' },
+      {
+        id: 'a',
+        text: 'An IAM policy attached only to each affected account\'s root user, restricting which regions the root user specifically may launch resources in.',
+      },
+      {
+        id: 'b',
+        text: 'A Service Control Policy attached to the Sandbox OU that denies actions unless the aws:RequestedRegion condition key matches one of the two allowed regions, enforced for every principal in every account within that OU regardless of local IAM configuration.',
+      },
+      {
+        id: 'c',
+        text: 'The existing AWS Budgets alert for the Sandbox OU, tightened so that it also fires a notification whenever spend appears in an unusual region.',
+      },
+      {
+        id: 'd',
+        text: 'A CloudWatch alarm configured to notify the security team whenever a resource is created in a region outside of the two allowed regions.',
+      },
     ],
     correctAnswers: ['b'],
     explanation:
@@ -941,12 +1625,24 @@ export const questions: Question[] = [
     domain: 'Management and Security Governance',
     questionType: 'single',
     question:
-      'A company must demonstrate to an external auditor that resources across 30 accounts continuously comply with a security baseline (encrypted EBS volumes, no public S3 buckets), wanting ongoing, automated evaluation rather than the quarterly manual spreadsheet review the compliance team currently maintains, which also separately tracks unrelated software license counts.',
+      'A company must demonstrate to an external auditor that resources spread across 30 AWS accounts continuously comply with a defined security baseline — including requirements such as encrypted EBS volumes and no publicly accessible S3 buckets — and specifically wants ongoing, automated evaluation of that compliance state, rather than continuing with the quarterly manual spreadsheet review the compliance team currently maintains, a spreadsheet that also separately tracks an unrelated inventory of software license counts across the company.',
     options: [
-      { id: 'a', text: 'Continue the quarterly manual spreadsheet review, done more carefully' },
-      { id: 'b', text: 'IAM Access Analyzer alone' },
-      { id: 'c', text: 'AWS Config Rules, potentially packaged as a conformance pack, with a multi-account aggregator' },
-      { id: 'd', text: 'Amazon CloudWatch Synthetics canaries' },
+      {
+        id: 'a',
+        text: 'Continue the existing quarterly manual spreadsheet review, simply performed with more care and attention to detail each quarter than before.',
+      },
+      {
+        id: 'b',
+        text: 'IAM Access Analyzer used on its own, without any additional service, as the sole mechanism for demonstrating this compliance to the auditor.',
+      },
+      {
+        id: 'c',
+        text: 'AWS Config Rules, potentially packaged together as a conformance pack, combined with a multi-account Config aggregator to give one consolidated compliance view across all 30 accounts.',
+      },
+      {
+        id: 'd',
+        text: 'Amazon CloudWatch Synthetics canaries, configured to periodically check the availability and response correctness of the company\'s public-facing endpoints.',
+      },
     ],
     correctAnswers: ['c'],
     explanation:
@@ -957,12 +1653,24 @@ export const questions: Question[] = [
     domain: 'Management and Security Governance',
     questionType: 'single',
     question:
-      'A compliance officer, who also manages the team\'s AWS Marketplace software subscriptions as an unrelated procurement task, needs on-demand access to AWS\'s SOC 2 and ISO 27001 reports for a customer security questionnaire, and separately needs to review and accept the HIPAA Business Associate Addendum before processing certain healthcare workloads.',
+      'A compliance officer, who also separately manages the team\'s AWS Marketplace software subscriptions as an unrelated procurement responsibility that has nothing to do with this request, needs on-demand access to AWS\'s SOC 2 and ISO 27001 audit reports in order to respond to a customer\'s security questionnaire, and separately needs to formally review and accept the HIPAA Business Associate Addendum before the company can begin processing certain healthcare-related workloads on AWS.',
     options: [
-      { id: 'a', text: 'AWS Marketplace' },
-      { id: 'b', text: 'AWS Config' },
-      { id: 'c', text: 'Amazon Inspector' },
-      { id: 'd', text: 'AWS Artifact, for on-demand access to AWS compliance reports and for reviewing/accepting agreements like the BAA' },
+      {
+        id: 'a',
+        text: 'AWS Marketplace, the same procurement portal the officer already uses to manage the team\'s existing third-party software subscriptions.',
+      },
+      {
+        id: 'b',
+        text: 'AWS Config, which tracks and evaluates the configuration state of resources rather than providing access to AWS\'s own compliance certification documents.',
+      },
+      {
+        id: 'c',
+        text: 'Amazon Inspector, which performs automated vulnerability and network-reachability scanning of workloads rather than providing compliance documentation.',
+      },
+      {
+        id: 'd',
+        text: 'AWS Artifact, the self-service portal that provides on-demand access to AWS\'s compliance reports such as SOC 2 and ISO 27001, and that also supports reviewing and formally accepting agreements such as the HIPAA BAA.',
+      },
     ],
     correctAnswers: ['d'],
     explanation:
@@ -973,12 +1681,24 @@ export const questions: Question[] = [
     domain: 'Management and Security Governance',
     questionType: 'single',
     question:
-      'During a shared-responsibility training session for new hires, a cloud engineer who just joined the security team asks who is responsible for patching the underlying hypervisor and physical host infrastructure for the company\'s EC2 fleet. The company\'s guest-OS patch compliance is separately tracked at 94% via Systems Manager Patch Manager, an unrelated internal metric the engineer happened to see on a dashboard earlier that day. The training session is being run jointly by the security and platform engineering teams as part of a broader onboarding curriculum, a scheduling detail with no bearing on the actual division of responsibility. Who is responsible for the hypervisor/host layer?',
+      'During a shared-responsibility training session held jointly for new hires on both the security and platform engineering teams, a cloud engineer who just joined the security team asks who is actually responsible for patching the underlying hypervisor and the physical host infrastructure that supports the company\'s EC2 fleet. The company\'s guest-OS patch compliance is separately tracked at 94% through Systems Manager Patch Manager, an unrelated internal metric the engineer happened to notice on a dashboard earlier that same day. The fact that the training session is being co-run by two different teams as part of a broader onboarding curriculum is a scheduling detail with no bearing on the actual division of security responsibility being discussed. Who is actually responsible for the hypervisor and physical host layer underneath EC2?',
     options: [
-      { id: 'a', text: 'AWS, as part of "security of the cloud"' },
-      { id: 'b', text: 'The customer, as part of "security in the cloud"' },
-      { id: 'c', text: 'A 50/50 split between AWS and the customer for every layer of EC2' },
-      { id: 'd', text: 'The customer\'s third-party auditor' },
+      {
+        id: 'a',
+        text: 'AWS is responsible for the hypervisor and physical host layer, as part of what AWS terms "security of the cloud" under the shared responsibility model.',
+      },
+      {
+        id: 'b',
+        text: 'The customer is responsible for the hypervisor and physical host layer, as part of what AWS terms "security in the cloud" under the shared responsibility model.',
+      },
+      {
+        id: 'c',
+        text: 'Responsibility for every layer of the EC2 stack, including the hypervisor, is split exactly 50/50 between AWS and the customer regardless of which layer is being discussed.',
+      },
+      {
+        id: 'd',
+        text: 'The customer\'s third-party financial auditor is responsible for the hypervisor and physical host layer as part of its independent assessment engagement.',
+      },
     ],
     correctAnswers: ['a'],
     explanation:
@@ -989,12 +1709,24 @@ export const questions: Question[] = [
     domain: 'Management and Security Governance',
     questionType: 'single',
     question:
-      'A company wants every newly created member account to automatically receive preventive guardrails — "deny leaving the organization," "deny disabling GuardDuty" — the instant the account is created, with zero manual follow-up, after an incident where a new account sat unprotected for two days. The IT helpdesk separately tracks account provisioning tickets in Jira, unrelated to guardrail enforcement.',
+      'A company wants every newly created member account to automatically receive a set of preventive guardrails — such as "deny leaving the organization" and "deny disabling GuardDuty" — the instant the account is created, with absolutely zero manual follow-up required from anyone, following an incident in which a newly created account sat completely unprotected by these guardrails for two full days before anyone noticed and manually applied them. The IT helpdesk separately tracks account-provisioning tickets in Jira as part of its own internal workflow, a tracking detail that is unrelated to how guardrail enforcement should actually be designed here.',
     options: [
-      { id: 'a', text: 'Manually attach the relevant SCPs to each account right after creation, tracked via the Jira ticket' },
-      { id: 'b', text: 'Attach the SCPs to the OU that new accounts are automatically placed into at creation time' },
-      { id: 'c', text: 'Send an automated Jira reminder to attach the SCP within 24 hours of account creation' },
-      { id: 'd', text: 'Rely on each account owner to configure equivalent IAM policies locally' },
+      {
+        id: 'a',
+        text: 'Manually attach the relevant SCPs to each new account right after it is created, with the task tracked and checked off via the corresponding Jira provisioning ticket.',
+      },
+      {
+        id: 'b',
+        text: 'Attach the relevant SCPs to the organizational unit that new accounts are automatically placed into at the moment of creation, so the guardrails apply immediately without any separate manual step.',
+      },
+      {
+        id: 'c',
+        text: 'Configure an automated Jira reminder that prompts someone to attach the appropriate SCP within 24 hours of a new account being created.',
+      },
+      {
+        id: 'd',
+        text: 'Rely on each new account\'s owner to independently configure equivalent local IAM policies that approximate the intent of the missing SCPs.',
+      },
     ],
     correctAnswers: ['b'],
     explanation:
@@ -1005,12 +1737,24 @@ export const questions: Question[] = [
     domain: 'Management and Security Governance',
     questionType: 'multi',
     question:
-      'During a security architecture review, one engineer claims SCPs can grant new permissions on their own, another claims they don\'t apply to the account\'s root user, and a third mentions they\'re unrelated to the company\'s separate Config conformance pack rollout. Select the TWO statements about SCPs that are actually correct.',
+      'During a security architecture review, one engineer confidently claims that Service Control Policies can grant new permissions to a principal on their own, a second engineer claims SCPs simply don\'t apply at all to an account\'s own root user, and a third engineer mentions, somewhat beside the point, that SCPs are unrelated to the company\'s separate ongoing AWS Config conformance-pack rollout. Select the TWO statements about SCPs below that are actually correct.',
     options: [
-      { id: 'a', text: 'SCPs can grant permissions even when no IAM or resource-based policy allows the action' },
-      { id: 'b', text: 'SCPs set the maximum available permissions for an account but never grant permissions by themselves — an IAM/resource policy must still separately allow the action' },
-      { id: 'c', text: 'SCPs affect every principal in the affected account, including the account\'s root user' },
-      { id: 'd', text: 'SCPs apply only to IAM users and never to roles' },
+      {
+        id: 'a',
+        text: 'SCPs can grant permissions to a principal even in cases where no IAM identity-based policy or resource-based policy otherwise allows that action.',
+      },
+      {
+        id: 'b',
+        text: 'SCPs set the maximum available permissions ceiling for an account but never grant any permission by themselves — a separate IAM identity-based or resource-based policy must still independently allow the action for it to actually succeed.',
+      },
+      {
+        id: 'c',
+        text: 'SCPs affect every principal within the affected account, including that account\'s own root user, with no exception carved out for root.',
+      },
+      {
+        id: 'd',
+        text: 'SCPs apply only to IAM users specifically, and never apply to IAM roles under any circumstances.',
+      },
     ],
     correctAnswers: ['b', 'c'],
     explanation:
@@ -1021,12 +1765,24 @@ export const questions: Question[] = [
     domain: 'Management and Security Governance',
     questionType: 'single',
     question:
-      'A security team in a 120-account Organization wants one centrally designated account to configure and view GuardDuty, Security Hub, and Detective findings across every member account, without assuming a separate IAM role into each account individually every time. The management account separately handles consolidated billing, which addresses cost visibility but not this administration need.',
+      'A security team operating within a 120-account AWS Organization wants to designate one centralized account from which they can configure and view GuardDuty, Security Hub, and Detective findings across every single member account, without having to individually assume a separate cross-account IAM role into each of those 120 accounts one at a time whenever they need to check something. The Organization\'s management account separately handles consolidated billing across all member accounts, which addresses cost visibility for the finance team but does nothing to solve this particular security-administration need.',
     options: [
-      { id: 'a', text: 'Consolidated billing, extended to cover security dashboards' },
-      { id: 'b', text: 'Manually created cross-account IAM roles in every one of the 120 accounts' },
-      { id: 'c', text: 'Designating a delegated administrator account within AWS Organizations for GuardDuty, Security Hub, and Detective' },
-      { id: 'd', text: 'AWS Budgets, configured with account groupings' },
+      {
+        id: 'a',
+        text: 'Consolidated billing, somehow extended in scope to also cover viewing and configuring security dashboards across the Organization.',
+      },
+      {
+        id: 'b',
+        text: 'Manually created cross-account IAM roles set up individually in every one of the 120 member accounts, each one assumed separately whenever the security team needs access to that account.',
+      },
+      {
+        id: 'c',
+        text: 'Designating a delegated administrator account within AWS Organizations specifically for GuardDuty, Security Hub, and Detective, giving that account native, centralized configuration and visibility across every member account.',
+      },
+      {
+        id: 'd',
+        text: 'AWS Budgets, configured with custom account groupings that mirror the Organization\'s existing account structure.',
+      },
     ],
     correctAnswers: ['c'],
     explanation:
@@ -1037,12 +1793,24 @@ export const questions: Question[] = [
     domain: 'Management and Security Governance',
     questionType: 'single',
     question:
-      'A company preparing for a PCI DSS audit wants to quickly evaluate its environment against a pre-built collection of Config rules mapped to PCI DSS requirements, rather than manually researching and selecting each rule individually. The finance team is separately reviewing Cost Explorer data to forecast next quarter\'s spend, an unrelated exercise happening the same week.',
+      'A company preparing for an upcoming PCI DSS audit wants to quickly evaluate its environment against a pre-built collection of AWS Config rules that are already mapped to specific PCI DSS requirements, rather than having someone manually research and hand-select each individual Config rule that might be relevant to the standard. The finance team is separately reviewing Cost Explorer data during the same week to forecast next quarter\'s cloud spend, an entirely unrelated exercise running in parallel that has no bearing on this compliance-evaluation need.',
     options: [
-      { id: 'a', text: 'AWS Systems Manager Compliance, viewing per-resource patch and association compliance state' },
-      { id: 'b', text: 'AWS Well-Architected Tool, applying the Security pillar lens to the workload' },
-      { id: 'c', text: 'AWS Trusted Advisor\'s full set of Business/Enterprise checks' },
-      { id: 'd', text: 'An AWS Config conformance pack for PCI DSS, deploying the mapped rules as a single unit' },
+      {
+        id: 'a',
+        text: 'AWS Systems Manager Compliance, which surfaces per-resource patch and state-association compliance information rather than a mapped set of rules for a specific regulatory framework.',
+      },
+      {
+        id: 'b',
+        text: 'The AWS Well-Architected Tool, applying the Security pillar lens to the workload as a manual, point-in-time self-assessment exercise.',
+      },
+      {
+        id: 'c',
+        text: 'AWS Trusted Advisor\'s full set of Business/Enterprise-tier checks, which span general best practices across cost, performance, security, and fault tolerance.',
+      },
+      {
+        id: 'd',
+        text: 'An AWS Config conformance pack built specifically for PCI DSS, which bundles the relevant, pre-mapped Config rules together and deploys them as a single unit rather than requiring manual, rule-by-rule selection.',
+      },
     ],
     correctAnswers: ['d'],
     explanation:
@@ -1053,12 +1821,24 @@ export const questions: Question[] = [
     domain: 'Management and Security Governance',
     questionType: 'multi',
     question:
-      'A team managing a fully managed RDS database storing customer PII is clarifying, ahead of a shared-responsibility training refresh, which duties remain theirs versus AWS\'s. The database runs on a Multi-AZ deployment for high availability, a resiliency configuration that does not change who is responsible for which security controls. Select the TWO items that remain the customer\'s responsibility.',
+      'A team managing a fully managed RDS database that stores customer PII is clarifying, ahead of a refresher training session on the shared responsibility model, exactly which security-related duties remain theirs versus which ones AWS handles for a managed service like this. The database runs as a Multi-AZ deployment purely for high-availability purposes, a resiliency configuration choice that does not change who is responsible for which specific security controls regardless of how it affects failover behavior. Select the TWO items below that remain the customer\'s responsibility even though RDS is a fully managed service.',
     options: [
-      { id: 'a', text: 'Replacing failed physical disks underlying the RDS instance' },
-      { id: 'b', text: 'Patching the underlying database engine\'s operating system/host infrastructure entirely' },
-      { id: 'c', text: 'Configuring security groups and database-level user accounts/permissions for the RDS instance' },
-      { id: 'd', text: 'Choosing to enable encryption at rest and enforcing SSL/TLS for connections' },
+      {
+        id: 'a',
+        text: 'Physically replacing failed disks and other failed hardware components underlying the managed RDS instance.',
+      },
+      {
+        id: 'b',
+        text: 'Patching the underlying database engine\'s operating system and host infrastructure in its entirety, end to end.',
+      },
+      {
+        id: 'c',
+        text: 'Configuring the security groups that control network access to the RDS instance, along with the database-level user accounts and permissions defined inside the database engine itself.',
+      },
+      {
+        id: 'd',
+        text: 'Deciding whether to enable encryption at rest for the instance, and separately configuring the instance to enforce SSL/TLS for client connections.',
+      },
     ],
     correctAnswers: ['c', 'd'],
     explanation:
