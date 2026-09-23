@@ -745,7 +745,7 @@ export const questions: Question[] = [
     domain: 'Infrastructure Security',
     questionType: 'single',
     question:
-      'A security engineer wants an ironclad guarantee that EC2 instances launched anywhere in a shared VPC can never receive a public IP address, with that guarantee enforced automatically the instant someone attempts a non-compliant launch, rather than a control that only catches the violation sometime after the instance is already running. The team already has a Slack alert wired up to fire whenever GuardDuty raises a relevant finding, which fires a notification shortly after GuardDuty raises a matching finding.',
+      'A security engineer wants an ironclad guarantee that EC2 instances launched anywhere in a shared VPC can never receive a public IP address, with that guarantee enforced automatically the instant someone attempts a non-compliant launch, rather than a control that only catches the violation sometime after the instance is already running. The team already has a Slack alert wired up to fire whenever GuardDuty raises a finding matching a specific set of rules.',
     options: [
       {
         id: 'a',
@@ -1765,7 +1765,7 @@ export const questions: Question[] = [
     domain: 'Management and Security Governance',
     questionType: 'single',
     question:
-      'A security team operating within a 120-account AWS Organization wants to designate one centralized account from which they can configure and view GuardDuty, Security Hub, and Detective findings across every single member account, without having to individually assume a separate cross-account IAM role into each of those 120 accounts one at a time whenever they need to check something. The Organization\'s management account separately handles consolidated billing across all member accounts, which addresses cost visibility for the finance team but does nothing to solve this particular security-administration need.',
+      'A security team operating within a 120-account AWS Organization wants to designate one centralized account from which they can configure and view GuardDuty, Security Hub, and Detective findings across every single member account, without having to individually assume a separate cross-account IAM role into each of those 120 accounts one at a time whenever they need to check something. The Organization\'s management account already handles consolidated billing across all member accounts for the finance team.',
     options: [
       {
         id: 'a',
